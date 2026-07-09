@@ -1,0 +1,18 @@
+# ============================================================
+# MySQL 连接配置 —— 模板（本文件会进仓库，不含真实密码）
+#
+# 用法：
+#   1. 把本文件复制一份，改名为 db.properties（同目录）；
+#   2. 把下面的 password 改成你本机 MySQL 的 root 密码；
+#   3. db.properties 已在 .gitignore 中，不会被提交，你的密码不会进仓库。
+# ============================================================
+
+# 连接串：已带上 serverTimezone(防时区报错)、characterEncoding=utf8(防中文乱码)、
+#         useSSL=false & allowPublicKeyRetrieval=true(MySQL 8 认证所需)
+url=jdbc:mysql://localhost:3306/game_db?serverTimezone=Asia/Shanghai&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+
+# 数据库用户名
+user=root
+
+# 数据库密码：请改成你本机 MySQL 的 root 密码
+password=YOUR_MYSQL_PASSWORD
