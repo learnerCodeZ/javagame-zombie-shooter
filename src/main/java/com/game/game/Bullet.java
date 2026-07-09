@@ -40,8 +40,20 @@ public class Bullet implements GameObject {
 
     @Override
     public void draw(Graphics2D g) {
+        int ix = (int) x;
+        int iy = (int) y;
+        // 外层光晕：半透明黄
+        g.setColor(new Color(255, 220, 80, 70));
+        g.fillOval(ix - radius - 3, iy - radius - 3, (radius + 3) * 2, (radius + 3) * 2);
+        // 拖尾：沿速度反方向的渐淡短线
+        g.setColor(new Color(255, 200, 40, 180));
+        g.drawLine(ix, iy, (int) (x - vx * 1.6), (int) (y - vy * 1.6));
+        // 弹芯：亮黄
         g.setColor(Color.YELLOW);
-        g.fillOval((int) x - radius, (int) y - radius, radius * 2, radius * 2);
+        g.fillOval(ix - radius, iy - radius, radius * 2, radius * 2);
+        // 高光点：白色
+        g.setColor(Color.WHITE);
+        g.fillOval(ix - 2, iy - 2, 4, 4);
     }
 
     /**

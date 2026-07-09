@@ -4,32 +4,75 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 
 /**
- * 僵尸：从画布边缘生成，朝目标（玩家）匀速直线移动。
- * <p>绿色圆形，血量 1，一发子弹即可击杀。
+ * 僵尸：从画布边缘生成，匀速追击目标（玩家）；目标可由控制器每帧更新，实现持续追踪。
+ * <p>两种变体：
+ * <ul>
+ *   <li>{@link Type#NORMAL}：普通绿僵，半径 18、血量 1、得分 10。</li>
+ *   <li>{@link Type#BRUTE}：壮硕橄榄绿僵，半径 26、血量 3、速度更慢、得分 25，头顶带血条。</li>
+ * </ul>
+ * 身体随帧轻微起伏摇摆；被击中但未死时短暂泛白（命中闪白）。
  */
 public class Zombie implements GameObject {
 
+    /** 僵尸变体。 */
+    public enum Type { NORMAL, BRUTE }
+
+    private final Type type;
     private double x;
     private double y;
     private final double speed;
-    private int hp = 1;
-    private final int radius = 18;
-    private final double targetX;
-    private final double targetY;
+    private int hp;
+    private final int maxHp;
+    private final int radius;
+    private final int scoreValue;
+    /** 追踪目标横坐标（随玩家移动每帧更新） */
+    private double targetX;
+    /** 追踪目标纵坐标（随玩家移动每帧更新） */
+    private double targetY;
+    /** 命中闪白剩余帧（被打到但未死时短暂泛白） */
+    private int hitFlash;
+    /** 动画帧计数（用于身体起伏摇摆） */
+    private int animFrame;
 
     /**
-     * 构造方法。
+     * 构造普通僵尸（兼容旧调用）。
      *
      * @param x       生成横坐标
      * @param y       生成纵坐标
      * @param speed   移动速度（像素/帧）
-     * @param targetX 目标横坐标（玩家位置）
-     * @param targetY 目标纵坐标（玩家位置）
+     * @param targetX 初始目标横坐标（玩家位置）
+     * @param targetY 初始目标纵坐标（玩家位置）
      */
     public Zombie(double x, double y, double speed, double targetX, double targetY) {
+        this(Type.NORMAL, x, y, speed, targetX, targetY);
+    }
+
+    /**
+     * 构造指定变体的僵尸。
+     *
+     * @param type    变体
+     * @param x       生成横坐标
+     * @param y       生成纵坐标
+     * @param speed   移动速度（像素/帧）
+     * @param targetX 初始目标横坐标（玩家位置）
+     * @param targetY 初始目标纵坐标（玩家位置）
+     */
+    public Zombie(Type type, double x, double y, double speed, double targetX, double targetY) {
+        this.type = type;
         this.x = x;
         this.y = y;
         this.speed = speed;
+        if (type == Type.BRUTE) {
+            this.radius = 26;
+            this.maxHp = 3;
+            this.hp = 3;
+            this.scoreValue = 25;
+        } else {
+            this.radius = 18;
+            this.maxHp = 1;
+            this.hp = 1;
+            this.scoreValue = 10;
+        }
         this.targetX = targetX;
         this.targetY = targetY;
     }
@@ -43,21 +86,75 @@ public class Zombie implements GameObject {
             x += dx / dist * speed;
             y += dy / dist * speed;
         }
+        if (hitFlash > 0) {
+            hitFlash--;
+        }
+        animFrame++;
     }
 
     @Override
     public void draw(Graphics2D g) {
-        g.setColor(Color.GREEN);
-        g.fillOval((int) x - radius, (int) y - radius, radius * 2, radius * 2);
+        int ix = (int) x;
+        // 身体起伏：以正弦做轻微上下摆动，显得在蹒跚前行
+        int bob = (int) Math.round(Math.sin(animFrame * 0.25) * 2.0);
+        int iy = (int) y + bob;
+        boolean brute = type == Type.BRUTE;
+
+        // 身体：普通绿 / 壮硕橄榄绿
+        g.setColor(brute ? new Color(96, 124, 46) : Color.GREEN);
+        g.fillOval(ix - radius, iy - radius, radius * 2, radius * 2);
+        // 描边：壮硕更深更粗
+        g.setColor(brute ? new Color(54, 74, 24) : new Color(0, 110, 0));
+        g.drawOval(ix - radius, iy - radius, radius * 2, radius * 2);
+        // 两只红眼（壮硕更大）
+        int eye = brute ? 7 : 5;
+        int eo = brute ? 10 : 8;
+        g.setColor(Color.RED);
+        g.fillOval(ix - eo - eye / 2, iy - 5, eye, eye);
+        g.fillOval(ix + eo - eye / 2, iy - 5, eye, eye);
+        // 嘴巴：黑色短横线（壮硕更宽）
+        int mw = brute ? 16 : 10;
+        g.setColor(Color.BLACK);
+        g.fillRect(ix - mw / 2, iy + 4, mw, 2);
+
+        // 命中闪白：被击中但未死时叠加半透明白
+        if (hitFlash > 0) {
+            float a = Math.min(1f, hitFlash / 6f) * 0.6f;
+            g.setColor(new Color(255, 255, 255, (int) (a * 255)));
+            g.fillOval(ix - radius, iy - radius, radius * 2, radius * 2);
+        }
+
+        // 壮硕头顶血条（仅多血量时显示）
+        if (maxHp > 1 && hp < maxHp) {
+            int barW = radius * 2;
+            int barX = ix - radius;
+            int barY = iy - radius - 10;
+            g.setColor(new Color(50, 50, 50));
+            g.fillRect(barX, barY, barW, 4);
+            g.setColor(new Color(220, 70, 70));
+            g.fillRect(barX, barY, (int) (barW * hp / (double) maxHp), 4);
+        }
     }
 
     /**
-     * 承受伤害。
+     * 更新追踪目标（由控制器每帧回填玩家当前位置）。
+     *
+     * @param x 目标横坐标
+     * @param y 目标纵坐标
+     */
+    public void setTarget(double x, double y) {
+        this.targetX = x;
+        this.targetY = y;
+    }
+
+    /**
+     * 承受伤害，并触发命中闪白。
      *
      * @param dmg 伤害点数（正数）
      */
     public void takeDamage(int dmg) {
         hp -= dmg;
+        hitFlash = 6;
     }
 
     /**
@@ -81,5 +178,20 @@ public class Zombie implements GameObject {
 
     public int getRadius() {
         return radius;
+    }
+
+    /** 变体。 */
+    public Type getType() {
+        return type;
+    }
+
+    /** 击杀得分。 */
+    public int getScoreValue() {
+        return scoreValue;
+    }
+
+    /** 死亡爆裂用的血液颜色（按变体区分深浅）。 */
+    public Color getBloodColor() {
+        return type == Type.BRUTE ? new Color(70, 96, 30) : new Color(40, 170, 40);
     }
 }

@@ -78,6 +78,7 @@ src/main/java/com/game/
 - ✅ 阶段③ 界面层（登录/注册/主菜单，`run.bat` 已验证可运行）
 - ✅ 阶段④ 游戏核心（Player/Zombie/Bullet/GameController/GamePanel/GameWindow，`TestGameLogic` + `run.bat` 已验证；含局内"退出本局"统一结算）
 - ✅ 阶段⑤ 排行榜（LeaderboardFrame + RecordDao JOIN 取昵称，`TestDao` 验证通过）
-- ⏳ 阶段⑥ 打磨（待开始）
+- ✅ 阶段⑥a 玩法+视觉打磨（WASD移动/僵尸追踪/难度递增/血条HUD/打击感粒子震屏/Brute僵尸，`TestGameLogic` 验证通过）
+- ⏳ 阶段⑥b 音效+设置（待开始）
 
-下一步：难度递增 / 音效 / 设置生效 / 素材美化（阶段⑥）。
+下一步：合成音效（SoundUtil）+ 设置窗生效（音效开关/难度）（阶段⑥b）。
