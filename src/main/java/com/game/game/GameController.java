@@ -1,5 +1,7 @@
 package com.game.game;
 
+import com.game.util.SoundUtil;
+
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,8 @@ public class GameController {
     private static final int SPAWN_INTERVAL = 90;
     /** 难度递增后的最小刷怪间隔（帧，约 0.5 秒） */
     private static final int MIN_SPAWN = 30;
+    /** 逻辑帧率：update() 每调用一次算一帧，每 {@value} 帧折算 1 逻辑秒（暂停时不推进）。 */
+    private static final int FRAMES_PER_SEC = 60;
     /** 僵尸撞击玩家造成的伤害 */
     private static final int HIT_DAMAGE = 20;
     /** Brute 开始出现的存活秒数门槛 */
@@ -43,7 +47,6 @@ public class GameController {
     private int moveDy;
     private int score;
     private int killCount;
-    private final long startMs;
     private boolean running;
     private int frameCounter;
 
@@ -74,7 +77,6 @@ public class GameController {
         this.random = new Random();
         this.score = 0;
         this.killCount = 0;
-        this.startMs = System.currentTimeMillis();
         this.running = true;
         this.frameCounter = 0;
         this.gameOverFired = false;
@@ -116,6 +118,7 @@ public class GameController {
         double vy = Math.sin(angle) * BULLET_SPEED;
         bullets.add(new Bullet(bx, by, vx, vy));
         spawnMuzzleFlash(bx, by, angle);
+        SoundUtil.shoot();
     }
 
     /**
@@ -231,6 +234,7 @@ public class GameController {
                     z.takeDamage(1);
                     b.setDead(true);
                     spawnHitSparks(b.getX(), b.getY());
+                    SoundUtil.hit();
                     if (z.isDead()) {
                         killCount++;
                         score += z.getScoreValue();
@@ -251,6 +255,7 @@ public class GameController {
             double dy = z.getY() - player.getY();
             if (Math.hypot(dx, dy) < z.getRadius() + player.getRadius()) {
                 player.takeDamage(HIT_DAMAGE);
+                SoundUtil.hurt();
                 z.kill();
                 spawnZombieDeath(z);
                 triggerShake(14, 6);
@@ -346,6 +351,7 @@ public class GameController {
             return;
         }
         gameOverFired = true;
+        SoundUtil.gameOver();
         if (onGameOver != null) {
             onGameOver.run();
         }
@@ -424,11 +430,14 @@ public class GameController {
     }
 
     /**
-     * 已存活秒数。
+     * 已存活秒数（纯游戏内时间，不受暂停影响）。
+     * <p>基于 {@code frameCounter} 折算（每 {@value #FRAMES_PER_SEC} 帧为 1 秒）。暂停时
+     * {@code update()} 不被调用、frameCounter 不增长，因此暂停期间不计入存活时间——
+     * 这使存档的 surviveSec、刷怪间隔与 Brute 门槛都只反映实际游玩时间。
      *
      * @return 从开始到当前的整秒数
      */
     public int getElapsedSec() {
-        return (int) ((System.currentTimeMillis() - startMs) / 1000);
+        return frameCounter / FRAMES_PER_SEC;
     }
 }

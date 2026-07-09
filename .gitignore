@@ -1,5 +1,5 @@
 # ===== 编译产物 =====
-out/
+out*/
 target/
 *.class
 .build*/

@@ -22,19 +22,19 @@ import java.util.Set;
 
 /**
  * 游戏画布：持有控制器与刷新定时器，负责绘制并把输入转发给控制器。
- * <p>画布 800x600，约 60 FPS（Timer 间隔 16ms）。右上角有"退出本局"按钮。
+ * <p>画布 800x600，约 60 FPS（Timer 间隔 16ms）。右上角有"设置"按钮（点开"设置/暂停"菜单）。
  */
 public class GamePanel extends JPanel {
 
     private final GameController controller;
     private final Timer timer;
 
-    /** 右上角"退出本局"按钮：宽 / 高 / 距顶（横坐标按画布实际宽度动态贴右） */
+    /** 右上角"设置"按钮：宽 / 高 / 距顶（横坐标按画布实际宽度动态贴右） */
     private static final int EXIT_W = 84;
     private static final int EXIT_H = 28;
     private static final int EXIT_Y = 10;
-    /** 点"退出本局"后的回调（由 GameWindow 注入：停循环 + 回主菜单） */
-    private Runnable onExit;
+    /** 点"设置"按钮后的回调（由 GameWindow 注入：停循环 + 打开"设置/暂停"菜单） */
+    private Runnable onSettings;
 
     /** 当前处于按下状态的移动键码集合（WASD + 方向键），失焦时清空防卡键 */
     private final Set<Integer> pressedKeys = new HashSet<>();
@@ -68,13 +68,13 @@ public class GamePanel extends JPanel {
                 controller.setAim(e.getX(), e.getY());
             }
         });
-        // 鼠标按下 → 先判"退出本局"按钮，否则开火
+        // 鼠标按下 → 先判"设置"按钮，否则开火
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (isInExitButton(e.getX(), e.getY())) {
-                    if (onExit != null) {
-                        onExit.run();
+                    if (onSettings != null) {
+                        onSettings.run();
                     }
                     return;
                 }
@@ -152,12 +152,12 @@ public class GamePanel extends JPanel {
     }
 
     /**
-     * 设置"退出本局"按钮点击后的回调。
+     * 设置"设置"按钮点击后的回调。
      *
-     * @param onExit 回调（在 EDT 上触发）
+     * @param onSettings 回调（在 EDT 上触发）
      */
-    public void setOnExit(Runnable onExit) {
-        this.onExit = onExit;
+    public void setOnSettings(Runnable onSettings) {
+        this.onSettings = onSettings;
     }
 
     @Override
@@ -307,14 +307,14 @@ public class GamePanel extends JPanel {
         return getWidth() - EXIT_W - 10;
     }
 
-    /** 判断坐标是否落在"退出本局"按钮内。 */
+    /** 判断坐标是否落在"设置"按钮内。 */
     private boolean isInExitButton(int x, int y) {
         return x >= exitX() && x <= exitX() + EXIT_W
                 && y >= EXIT_Y && y <= EXIT_Y + EXIT_H;
     }
 
     /**
-     * 绘制右上角"退出本局"按钮。
+     * 绘制右上角"设置"按钮。
      *
      * @param g2 画布绘图上下文
      */
@@ -325,7 +325,7 @@ public class GamePanel extends JPanel {
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("微软雅黑", Font.BOLD, 14));
         FontMetrics fm = g2.getFontMetrics();
-        String label = "退出本局";
+        String label = "设置";
         int tx = x + (EXIT_W - fm.stringWidth(label)) / 2;
         int ty = EXIT_Y + (EXIT_H - fm.getHeight()) / 2 + fm.getAscent();
         g2.drawString(label, tx, ty);

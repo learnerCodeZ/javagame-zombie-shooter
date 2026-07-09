@@ -8,7 +8,7 @@
 ![Maven](https://img.shields.io/badge/Maven-build-C71A36)
 ![GUI](https://img.shields.io/badge/GUI-Swing-6DB33F)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
-![Status](https://img.shields.io/badge/进度-阶段⑥a完成-brightgreen)
+![Status](https://img.shields.io/badge/进度-阶段⑥完成-brightgreen)
 
 ---
 
@@ -40,7 +40,8 @@
 
 - 🔐 **用户系统**：注册 / 登录 / 退出登录，密码 MD5 加密存储
 - 🧭 **主菜单**：开始游戏 / 排行榜 / 游戏说明 / 设置 / 退出
-- 🎯 **射击玩法**：WASD 移动 + 鼠标瞄准射击、击杀得分、血条 HUD、难度递增、粒子震屏等打击感；局内可"退出本局"结算存档
+- 🎯 **射击玩法**：WASD 移动 + 鼠标瞄准射击、击杀得分、血条 HUD、难度递增、粒子震屏等打击感
+- 🔊 **音效与设置**：代码合成音效(射击/命中/受伤/结束)；局内"设置"菜单可暂停/音量/静音/再来一局/回主菜单
 - 🗄️ **数据持久化**：MySQL 存用户与战绩，JDBC + PreparedStatement（防注入）
 - 🏆 **排行榜**：全局榜 + 我的记录，按分数倒序
 - 🎨 **Swing 桌面 GUI**：系统原生外观、卡片式登录窗
@@ -183,7 +184,7 @@ mvn package              # 打包
 | ③ 界面层 | Swing 登录/注册/主菜单 | ✅ 完成 |
 | ④ 游戏核心 | 玩家/僵尸/子弹/主循环/碰撞/计分/结算/局内退出 | ✅ 完成 |
 | ⑤ 排行榜 | LeaderboardFrame + JOIN 取昵称 | ✅ 完成 |
-| ⑥ 打磨 | 6a 玩法+视觉(移动/追踪/难度/血条/打击感/Brute)✅；6b 音效+设置 ⏳ | 🚧 进行中 |
+| ⑥ 打磨 | 玩法/视觉/打击感/音效/设置菜单(6a+6b) | ✅ 完成 |
 | ⑦ 测试与文档 | 自测、补文档、正式图 | ⏳ 待开始 |
 | ⑧ 答辩准备 | 演示、讲解、PPT | ⏳ 待开始 |
 
