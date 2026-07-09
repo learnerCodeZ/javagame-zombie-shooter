@@ -52,14 +52,14 @@ public class MainFrame extends JFrame {
         JButton settingButton = createMenuButton("设置");
         JButton logoutButton = createMenuButton("退出登录");
 
-        // 各按钮事件（排行榜、设置为占位，后续阶段实现）
+        // 各按钮事件（开始游戏→GameWindow；排行榜→LeaderboardFrame；设置仍为占位）
         startButton.addActionListener(
                 e -> {
                     dispose();
                     new GameWindow(currentUser).setVisible(true);
                 });
         rankButton.addActionListener(
-                e -> JOptionPane.showMessageDialog(this, "排行榜将在阶段⑤实现"));
+                e -> new LeaderboardFrame(currentUser).setVisible(true));
         helpButton.addActionListener(e -> showHelp());
         settingButton.addActionListener(
                 e -> JOptionPane.showMessageDialog(this, "设置功能开发中"));

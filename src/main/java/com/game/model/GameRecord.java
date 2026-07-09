@@ -15,6 +15,13 @@ public class GameRecord {
     private int surviveSec;
     private Date recordTime;
 
+    /**
+     * 昵称（仅用于显示）。
+     * 注意：nickname 不是数据库 game_record 表的列，
+     * 只用于排行榜显示，由 RecordDao.topN 的 JOIN user 填充。
+     */
+    private String nickname;
+
     public GameRecord() {
     }
 
@@ -64,6 +71,24 @@ public class GameRecord {
 
     public void setRecordTime(Date recordTime) {
         this.recordTime = recordTime;
+    }
+
+    /**
+     * 获取昵称（仅显示用，非数据库列）。
+     *
+     * @return 昵称，可能为 null（如 mine 结果未填充）
+     */
+    public String getNickname() {
+        return nickname;
+    }
+
+    /**
+     * 设置昵称（仅显示用，由 JOIN user 填充）。
+     *
+     * @param nickname 昵称
+     */
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     @Override

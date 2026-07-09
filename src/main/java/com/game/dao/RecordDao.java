@@ -43,15 +43,17 @@ public class RecordDao {
      * @return 排行榜列表（已按分数从高到低）
      */
     public List<GameRecord> topN(int n) {
-        String sql = "SELECT id, user_id, score, kill_count, survive_sec, record_time "
-                + "FROM game_record ORDER BY score DESC LIMIT ?";
+        String sql = "SELECT g.id, g.user_id, g.score, g.kill_count, g.survive_sec, "
+                + "g.record_time, u.nickname "
+                + "FROM game_record g JOIN user u ON g.user_id = u.id "
+                + "ORDER BY g.score DESC LIMIT ?";
         List<GameRecord> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, n);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(map(rs));
+                    list.add(mapWithUser(rs));
                 }
             }
         } catch (SQLException e) {
@@ -96,6 +98,14 @@ public class RecordDao {
         if (ts != null) {
             r.setRecordTime(new java.util.Date(ts.getTime()));
         }
+        return r;
+    }
+
+    // topN 专用映射：JOIN user 结果集多出 nickname 列。
+    // 注意：与 map 分开，避免 mine 因结果集无 nickname 列而报错。
+    private GameRecord mapWithUser(ResultSet rs) throws SQLException {
+        GameRecord r = map(rs);
+        r.setNickname(rs.getString("nickname"));
         return r;
     }
 }

@@ -8,7 +8,7 @@
 ![Maven](https://img.shields.io/badge/Maven-build-C71A36)
 ![GUI](https://img.shields.io/badge/GUI-Swing-6DB33F)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
-![Status](https://img.shields.io/badge/进度-阶段④完成-brightgreen)
+![Status](https://img.shields.io/badge/进度-阶段⑤完成-brightgreen)
 
 ---
 
@@ -182,7 +182,7 @@ mvn package              # 打包
 | ② 数据层 | JDBC 连库、DAO、注册/登录跑通 | ✅ 完成 |
 | ③ 界面层 | Swing 登录/注册/主菜单 | ✅ 完成 |
 | ④ 游戏核心 | 玩家/僵尸/子弹/主循环/碰撞/计分/结算/局内退出 | ✅ 完成 |
-| ⑤ 排行榜 | 排行榜界面（战绩已能存） | ⏳ 待开始 |
+| ⑤ 排行榜 | LeaderboardFrame + JOIN 取昵称 | ✅ 完成 |
 | ⑥ 打磨 | 难度/音效/设置/美化/异常 | ⏳ 待开始 |
 | ⑦ 测试与文档 | 自测、补文档、正式图 | ⏳ 待开始 |
 | ⑧ 答辩准备 | 演示、讲解、PPT | ⏳ 待开始 |

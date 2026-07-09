@@ -21,7 +21,7 @@
 src/main/java/com/game/
 ├── GameApp.java        # 入口：设系统外观 + 打开 LoginFrame
 ├── TestDao.java        # 数据层验收测试（带 main）
-├── ui/                 # 界面层：LoginFrame / RegisterFrame / MainFrame（阶段③）
+├── ui/                 # 界面层：LoginFrame / RegisterFrame / MainFrame / LeaderboardFrame
 ├── game/               # 游戏层：Player / Zombie / Bullet / GamePanel / GameController / GameWindow
 ├── model/              # 实体（POJO）：User / GameRecord
 ├── dao/                # 数据访问：DBUtil / UserDao / RecordDao
@@ -77,6 +77,7 @@ src/main/java/com/game/
 - ✅ 阶段② 数据层（DAO 跑通注册/登录/存档/排行榜，`TestDao` 已验证）
 - ✅ 阶段③ 界面层（登录/注册/主菜单，`run.bat` 已验证可运行）
 - ✅ 阶段④ 游戏核心（Player/Zombie/Bullet/GameController/GamePanel/GameWindow，`TestGameLogic` + `run.bat` 已验证；含局内"退出本局"统一结算）
-- ⏳ 阶段⑤ 排行榜（待开始）
+- ✅ 阶段⑤ 排行榜（LeaderboardFrame + RecordDao JOIN 取昵称，`TestDao` 验证通过）
+- ⏳ 阶段⑥ 打磨（待开始）
 
-下一步：主菜单「排行榜」按钮接入 `LeaderboardFrame`（调 `RecordDao.topN / mine`）。
+下一步：难度递增 / 音效 / 设置生效 / 素材美化（阶段⑥）。
