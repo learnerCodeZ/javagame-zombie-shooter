@@ -8,6 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 用户数据访问对象：封装 user 表的增删改查。
@@ -69,7 +71,7 @@ public class UserDao {
      * @return 校验通过返回 User 对象；失败返回 null
      */
     public User login(String username, String password) {
-        String sql = "SELECT id, username, password, nickname, create_time FROM user "
+        String sql = "SELECT id, username, password, nickname, role, create_time FROM user "
                 + "WHERE username = ? AND password = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -82,6 +84,7 @@ public class UserDao {
                     user.setUsername(rs.getString("username"));
                     user.setPassword(rs.getString("password"));
                     user.setNickname(rs.getString("nickname"));
+                    user.setRole(rs.getString("role"));
                     Timestamp ts = rs.getTimestamp("create_time");
                     if (ts != null) {
                         user.setCreateTime(new java.util.Date(ts.getTime()));
@@ -93,5 +96,111 @@ public class UserDao {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * 修改密码：先校验旧密码（WHERE 里比对 MD5），再更新为新密码。
+     * 按影响行数返回，旧密码错误则 0 行受影响返回 false。
+     *
+     * @param userId 用户ID
+     * @param oldPwd 旧明文密码
+     * @param newPwd 新明文密码
+     * @return true 表示修改成功；旧密码错误或出错则返回 false
+     */
+    public boolean changePassword(int userId, String oldPwd, String newPwd) {
+        String sql = "UPDATE user SET password = ? WHERE id = ? AND password = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, MD5Util.md5(newPwd));
+            ps.setInt(2, userId);
+            ps.setString(3, MD5Util.md5(oldPwd));
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 列出全部用户（用户管理界面用），按 id 升序。
+     *
+     * @return 全部用户列表；出错返回空列表
+     */
+    public List<User> listAllUsers() {
+        String sql = "SELECT id, username, password, nickname, role, create_time FROM user ORDER BY id";
+        List<User> list = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(map(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * 删除用户：admin 不可删（账号及其数据都受保护，提前拦截不动其任何记录）。
+     * 对普通用户：先删该用户的 game_record 和 password_reset_request
+     * （清掉外键依赖），再删 user 本身（DELETE 仍带 role &lt;&gt; 'admin' 兜底）。
+     *
+     * @param userId 用户ID
+     * @return true 表示已删除；目标不存在 / 是 admin / 出错则返回 false
+     */
+    public boolean deleteUser(int userId) {
+        try (Connection conn = DBUtil.getConnection()) {
+            // 先查 role：admin 账号连数据都不可动，直接拦截
+            String role = null;
+            try (PreparedStatement ps0 = conn.prepareStatement(
+                    "SELECT role FROM user WHERE id = ?")) {
+                ps0.setInt(1, userId);
+                try (ResultSet rs = ps0.executeQuery()) {
+                    if (rs.next()) {
+                        role = rs.getString("role");
+                    }
+                }
+            }
+            if (!"user".equals(role)) {
+                // 用户不存在 或 是 admin：不删
+                return false;
+            }
+            // 普通用户：先清掉两张子表的外键依赖，避免外键约束报错
+            try (PreparedStatement ps1 = conn.prepareStatement(
+                    "DELETE FROM game_record WHERE user_id = ?")) {
+                ps1.setInt(1, userId);
+                ps1.executeUpdate();
+            }
+            try (PreparedStatement ps2 = conn.prepareStatement(
+                    "DELETE FROM password_reset_request WHERE user_id = ?")) {
+                ps2.setInt(1, userId);
+                ps2.executeUpdate();
+            }
+            // 再删 user，且 admin 不可删（兜底）
+            try (PreparedStatement ps3 = conn.prepareStatement(
+                    "DELETE FROM user WHERE id = ? AND role <> 'admin'")) {
+                ps3.setInt(1, userId);
+                return ps3.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // 把结果集当前行映射成 User 对象（含 role / create_time）
+    private User map(ResultSet rs) throws SQLException {
+        User user = new User();
+        user.setId(rs.getInt("id"));
+        user.setUsername(rs.getString("username"));
+        user.setPassword(rs.getString("password"));
+        user.setNickname(rs.getString("nickname"));
+        user.setRole(rs.getString("role"));
+        Timestamp ts = rs.getTimestamp("create_time");
+        if (ts != null) {
+            user.setCreateTime(new java.util.Date(ts.getTime()));
+        }
+        return user;
     }
 }

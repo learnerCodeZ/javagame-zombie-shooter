@@ -12,6 +12,8 @@ public class User {
     private String username;
     private String password;
     private String nickname;
+    /** 角色：admin（管理员）/ user（普通用户），默认 user */
+    private String role;
     private Date createTime;
 
     public User() {
@@ -49,6 +51,24 @@ public class User {
         this.nickname = nickname;
     }
 
+    /**
+     * 获取角色。
+     *
+     * @return 角色：admin / user；未设置时可能为 null
+     */
+    public String getRole() {
+        return role;
+    }
+
+    /**
+     * 设置角色。
+     *
+     * @param role 角色：admin / user
+     */
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public Date getCreateTime() {
         return createTime;
     }
@@ -59,6 +79,7 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{id=" + id + ", username='" + username + "', nickname='" + nickname + "'}";
+        return "User{id=" + id + ", username='" + username + "', nickname='" + nickname
+                + "', role=" + role + "}";
     }
 }

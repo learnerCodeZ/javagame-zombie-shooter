@@ -1,5 +1,6 @@
 package com.game.ui;
 
+import com.game.dao.ResetRequestDao;
 import com.game.dao.UserDao;
 import com.game.model.User;
 
@@ -32,6 +33,8 @@ public class LoginFrame extends JFrame {
     private final JButton loginButton = new JButton("登录");
     /** 跳转注册按钮 */
     private final JButton toRegisterButton = new JButton("去注册");
+    /** 忘记密码按钮（提交重置申请，等管理员审核） */
+    private final JButton resetButton = new JButton("忘记密码?");
 
     /**
      * 构造方法：初始化窗口标题、大小、布局与事件。
@@ -64,13 +67,29 @@ public class LoginFrame extends JFrame {
 
         // 底部按钮区
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        buttonPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
+        buttonPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
         buttonPanel.add(loginButton);
         buttonPanel.add(toRegisterButton);
 
+        // "忘记密码?" 单独一行居中，作为链接式入口
+        JPanel resetPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        resetPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
+        resetButton.setBorderPainted(false);
+        resetButton.setContentAreaFilled(false);
+        resetButton.setForeground(new java.awt.Color(0, 102, 204));
+        resetButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        resetButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        resetPanel.add(resetButton);
+
+        // 南区纵向叠放按钮区 + 忘记密码链接
+        JPanel southPanel = new JPanel();
+        southPanel.setLayout(new javax.swing.BoxLayout(southPanel, javax.swing.BoxLayout.Y_AXIS));
+        southPanel.add(buttonPanel);
+        southPanel.add(resetPanel);
+
         add(titleLabel, BorderLayout.NORTH);
         add(formPanel, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
+        add(southPanel, BorderLayout.SOUTH);
     }
 
     /**
@@ -79,6 +98,7 @@ public class LoginFrame extends JFrame {
     private void initEvents() {
         loginButton.addActionListener(e -> doLogin());
         toRegisterButton.addActionListener(e -> doRegister());
+        resetButton.addActionListener(e -> doResetRequest());
         getRootPane().setDefaultButton(loginButton);
     }
 
@@ -111,6 +131,49 @@ public class LoginFrame extends JFrame {
         }
         dispose();
         new MainFrame(user).setVisible(true);
+    }
+
+    /**
+     * 忘记密码处理：弹框输入用户名 -> 调 ResetRequestDao.requestReset 提交申请。
+     * 用户名不存在 -> 提示"用户名不存在"；已有 pending -> 提示"已有待审核申请"；
+     * 成功提交 -> 提示"已提交，等管理员审核"。DB 异常 try/catch 友好提示。
+     */
+    private void doResetRequest() {
+        String username = JOptionPane.showInputDialog(this, "请输入您的用户名：",
+                "忘记密码", JOptionPane.QUESTION_MESSAGE);
+        if (username == null) {
+            // 用户点了取消
+            return;
+        }
+        username = username.trim();
+        if (username.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "用户名不能为空",
+                    "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        try {
+            UserDao userDao = new UserDao();
+            ResetRequestDao resetDao = new ResetRequestDao();
+            // 先用 findByName 区分"用户名不存在"，再调 requestReset
+            if (!userDao.findByName(username)) {
+                JOptionPane.showMessageDialog(this, "用户名不存在",
+                        "提示", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            boolean ok = resetDao.requestReset(username);
+            if (ok) {
+                JOptionPane.showMessageDialog(this, "已提交，等管理员审核",
+                        "提示", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                // 用户名存在但返回 false，说明该用户已有 pending 申请
+                JOptionPane.showMessageDialog(this, "已有待审核申请",
+                        "提示", JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "数据库连接失败，请检查 MySQL 是否已启动",
+                    "错误", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**

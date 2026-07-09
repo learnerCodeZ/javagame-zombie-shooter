@@ -15,8 +15,8 @@ import java.awt.Font;
 
 /**
  * 主菜单窗口。
- * 登录成功后展示，提供"开始游戏 / 排行榜 / 游戏说明 / 设置 / 退出登录"
- * 五个功能入口；记录当前登录用户，后续阶段的实际功能在此处接入。
+ * 登录成功后展示，提供"开始游戏 / 排行榜 / 修改密码 / 用户管理(仅 admin) /
+ * 游戏说明 / 设置 / 退出登录"等功能入口；记录当前登录用户，供后续功能取用。
  */
 public class MainFrame extends JFrame {
 
@@ -43,14 +43,19 @@ public class MainFrame extends JFrame {
     }
 
     /**
-     * 初始化界面组件：纵排五个大按钮。
+     * 初始化界面组件：纵排大按钮。
+     * "修改密码"对所有用户可见；"用户管理"仅 admin 可见。
      */
     private void initUI() {
         JButton startButton = createMenuButton("开始游戏");
         JButton rankButton = createMenuButton("排行榜");
+        JButton changePwdButton = createMenuButton("修改密码");
+        JButton adminButton = createMenuButton("用户管理");
         JButton helpButton = createMenuButton("游戏说明");
         JButton settingButton = createMenuButton("设置");
         JButton logoutButton = createMenuButton("退出登录");
+
+        boolean isAdmin = "admin".equals(currentUser.getRole());
 
         // 各按钮事件（开始游戏→GameWindow；排行榜→LeaderboardFrame；设置仍为占位）
         startButton.addActionListener(
@@ -60,6 +65,11 @@ public class MainFrame extends JFrame {
                 });
         rankButton.addActionListener(
                 e -> new LeaderboardFrame(currentUser).setVisible(true));
+        changePwdButton.addActionListener(
+                e -> new ChangePasswordDialog(this, currentUser).setVisible(true));
+        // 仅 admin 才打开用户管理；MainFrame 仍开着（AdminFrame 独立 dispose）
+        adminButton.addActionListener(
+                e -> new AdminFrame(currentUser).setVisible(true));
         helpButton.addActionListener(e -> showHelp());
         settingButton.addActionListener(
                 e -> JOptionPane.showMessageDialog(this, "设置功能开发中"));
@@ -69,17 +79,28 @@ public class MainFrame extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(20, 80, 20, 80));
-        panel.add(startButton);
-        panel.add(Box.createVerticalStrut(15));
-        panel.add(rankButton);
-        panel.add(Box.createVerticalStrut(15));
-        panel.add(helpButton);
-        panel.add(Box.createVerticalStrut(15));
-        panel.add(settingButton);
-        panel.add(Box.createVerticalStrut(15));
-        panel.add(logoutButton);
+        addMenuButton(panel, startButton);
+        addMenuButton(panel, rankButton);
+        addMenuButton(panel, changePwdButton);
+        if (isAdmin) {
+            addMenuButton(panel, adminButton);
+        }
+        addMenuButton(panel, helpButton);
+        addMenuButton(panel, settingButton);
+        addMenuButton(panel, logoutButton);
 
         add(panel);
+    }
+
+    /**
+     * 把菜单按钮加入面板，并在下方留一段竖直空白。
+     *
+     * @param panel  面板
+     * @param button 按钮
+     */
+    private void addMenuButton(JPanel panel, JButton button) {
+        panel.add(button);
+        panel.add(Box.createVerticalStrut(15));
     }
 
     /**
