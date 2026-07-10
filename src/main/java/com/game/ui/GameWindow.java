@@ -35,7 +35,7 @@ import java.awt.event.WindowEvent;
  *       {@link #settle()}（写战绩 + 弹"再来一局 / 回主菜单"，死亡不二次确认）；</li>
  *   <li>点右上角"设置"按钮：打开 {@link #openSettings()} 暂停循环，菜单内可调音量/静音、
  *       继续、再来一局（确认）、回主菜单（确认）；</li>
- *   <li>点 X 关窗：停止循环并回主菜单（不结算）。</li>
+ *   <li>点 X 关窗：确认后结算存档并回主菜单（与"退出游戏"按钮一致；取消则继续游戏）。</li>
  * </ul>
  *
  * <p>用 {@link #settled} 保证死亡结算只执行一次；用 {@link #settingsOpen} 防止设置菜单被重复打开。
@@ -74,7 +74,7 @@ public class GameWindow extends JFrame {
         setTitle("打僵尸 [" + difficulty.label + "]");
         setSize(820, 640);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE); // X 由 windowClosing 手动确认后 dispose，避免静默丢局
         // 窗体内容底设为最深的 BG，与暗色主题统一（画布会完整覆盖，此处主要防边缘闪白）
         getContentPane().setBackground(UIStyle.BG);
 
@@ -89,7 +89,7 @@ public class GameWindow extends JFrame {
         // 右上角"设置"按钮：暂停循环 + 打开"设置/暂停"菜单
         this.panel.setOnSettings(() -> SwingUtilities.invokeLater(this::openSettings));
 
-        // 窗口可见后启动循环；点 X 关窗时停止循环并回主菜单（不结算）
+        // 窗口可见后启动循环；点 X 关窗时确认后结算存档再回主菜单（与"退出游戏"按钮一致，避免静默丢局）
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowOpened(WindowEvent e) {
@@ -98,7 +98,34 @@ public class GameWindow extends JFrame {
 
             @Override
             public void windowClosing(WindowEvent e) {
+                if (settled) {
+                    // 已死亡结算：settle 已存档，直接回主菜单
+                    panel.stop();
+                    dispose();
+                    new MainFrame(currentUser).setVisible(true);
+                    return;
+                }
+                // 先暂停循环：模态确认框不会自动停 Timer（其嵌套事件泵仍会派发 Timer 事件），
+                // 必须手动 stop，否则确认期间游戏照常推进——与 openSettings 一致
                 panel.stop();
+                int c = JOptionPane.showConfirmDialog(GameWindow.this,
+                        "退出本局?将结算并存档当前进度", "确认退出",
+                        JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (c != JOptionPane.YES_OPTION) {
+                    panel.start(); // 取消：恢复循环，继续游戏
+                    return;
+                }
+                if (settled) {
+                    // 确认期间 settle() 已接管（死亡恰好发生在点 X 的同帧）：不重复存档/重开
+                    return;
+                }
+                settled = true; // 阻止排队中的死亡结算 settle() 重复存档
+                saveCurrentRecord();
+                String result = String.format("本局结算\n分数:%d  击杀:%d  存活:%ds",
+                        controller.getScore(), controller.getKillCount(), controller.getElapsedSec());
+                JOptionPane.showMessageDialog(GameWindow.this, result, "本局结算",
+                        JOptionPane.INFORMATION_MESSAGE);
+                dispose();
                 new MainFrame(currentUser).setVisible(true);
             }
         });
