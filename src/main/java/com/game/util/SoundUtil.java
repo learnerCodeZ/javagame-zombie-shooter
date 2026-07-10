@@ -54,8 +54,16 @@ public final class SoundUtil {
     private static final double MAX_AMP = 10000.0;
     /** 起音(attack)时长（秒）：开头淡入，柔化起声、消除瞬态"咔"声 */
     private static final double ATTACK_SEC = 0.005;
+    /** 释音(release)时长（秒）：结尾淡出到 0，使相邻音衔接处振幅归零、连射不咔哒 */
+    private static final double RELEASE_SEC = 0.005;
     /** 统一的音频格式 */
     private static final AudioFormat FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
+    /**
+     * 线路缓冲区大小（字节）≈ 50ms（44100Hz×16bit×单声道）。
+     * <p>刻意开小：让 {@link SourceDataLine#write} 在缓冲接近满时阻塞，把消费线程节流到实时，
+     * 避免连射把音频囤进线路缓冲、松手后还在响。50ms 延迟人耳察觉不到，又足够大避免欠载爆音。
+     */
+    private static final int LINE_BUFFER_BYTES = (int) (SAMPLE_RATE * 2 * 0.05);
 
     /** 开火防抖：两次开火音最少间隔（毫秒），避免连射堆爆播放队列 */
     private static final long SHOOT_DEBOUNCE_MS = 40;
@@ -109,7 +117,7 @@ public final class SoundUtil {
             if (sharedLine == null || !sharedLine.isOpen()) {
                 try {
                     SourceDataLine l = AudioSystem.getSourceDataLine(FORMAT);
-                    l.open(FORMAT);
+                    l.open(FORMAT, LINE_BUFFER_BYTES);
                     l.start();
                     sharedLine = l;
                 } catch (LineUnavailableException | SecurityException e) {
@@ -220,14 +228,17 @@ public final class SoundUtil {
         int samples = (int) (SAMPLE_RATE * durationMs / 1000.0);
         byte[] buffer = new byte[samples * 2];
         double amp = MAX_AMP * (GameSettings.getVolume() / 100.0);
+        double durationSec = durationMs / 1000.0;
         for (int i = 0; i < samples; i++) {
             double t = i / (double) SAMPLE_RATE;
             double env = Math.exp(-decay * t);
-            double atk = t < ATTACK_SEC ? (t / ATTACK_SEC) : 1.0; // 起音淡入，柔化起声
+            double atk = t < ATTACK_SEC ? (t / ATTACK_SEC) : 1.0;                       // 起音淡入
+            double remaining = durationSec - t;
+            double rel = (remaining < RELEASE_SEC) ? Math.max(0.0, remaining / RELEASE_SEC) : 1.0; // 结尾淡出
             double s = square
                     ? Math.signum(Math.sin(2 * Math.PI * freq * t))
                     : Math.sin(2 * Math.PI * freq * t);
-            appendSample(buffer, i, s * amp * env * atk);
+            appendSample(buffer, i, s * amp * env * atk * rel);
         }
         return buffer;
     }
@@ -248,14 +259,17 @@ public final class SoundUtil {
         double amp = MAX_AMP * (GameSettings.getVolume() / 100.0);
         double dt = 1.0 / SAMPLE_RATE;
         double phase = 0;
+        double durationSec = durationMs / 1000.0;
         for (int i = 0; i < samples; i++) {
             double progress = (double) i / samples;
             double freq = freqStart + (freqEnd - freqStart) * progress;
             phase += 2 * Math.PI * freq * dt;
             double t = i * dt;
             double env = Math.exp(-decay * t);
-            double atk = t < ATTACK_SEC ? (t / ATTACK_SEC) : 1.0; // 起音淡入
-            appendSample(buffer, i, Math.sin(phase) * amp * env * atk);
+            double atk = t < ATTACK_SEC ? (t / ATTACK_SEC) : 1.0;                       // 起音淡入
+            double remaining = durationSec - t;
+            double rel = (remaining < RELEASE_SEC) ? Math.max(0.0, remaining / RELEASE_SEC) : 1.0; // 结尾淡出
+            appendSample(buffer, i, Math.sin(phase) * amp * env * atk * rel);
         }
         return buffer;
     }
