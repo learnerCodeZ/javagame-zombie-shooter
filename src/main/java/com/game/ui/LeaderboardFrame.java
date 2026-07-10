@@ -3,15 +3,17 @@ package com.game.ui;
 import com.game.dao.RecordDao;
 import com.game.model.GameRecord;
 import com.game.model.User;
+import com.game.util.UIStyle;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
-import java.awt.Font;
+import java.awt.FlowLayout;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
@@ -47,6 +49,9 @@ public class LeaderboardFrame extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
+        // 暗色窗体底
+        getContentPane().setBackground(UIStyle.BG);
+
         // 列名常量；表格只读：重写 isCellEditable 永远返回 false
         String[] columns = {"排名", "昵称", "分数", "击杀", "存活(秒)", "时间"};
         tableModel = new DefaultTableModel(columns, 0) {
@@ -56,25 +61,30 @@ public class LeaderboardFrame extends JFrame {
             }
         };
         JTable table = new JTable(tableModel);
-        table.getTableHeader().setReorderingAllowed(false);
-        table.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        table.setRowHeight(24);
+        // 暗色表格 + 暗色滚动面板（行高 / 表头 / 网格 / 选中色由 UIStyle 统一）
+        UIStyle.table(table);
+        JScrollPane scrollPane = new JScrollPane(table);
+        UIStyle.scrollPane(scrollPane);
 
-        JButton globalButton = new JButton("全局榜");
-        JButton mineButton = new JButton("我的记录");
-        JButton backButton = new JButton("返回");
+        // 顶部按钮：全局榜 / 我的记录 → 主色橙；返回 → 次色绿
+        JButton globalButton = UIStyle.primary("全局榜");
+        JButton mineButton = UIStyle.primary("我的记录");
+        JButton backButton = UIStyle.secondary("返回");
 
         globalButton.addActionListener(e -> loadGlobal());
         mineButton.addActionListener(e -> loadMine());
         backButton.addActionListener(e -> dispose());
 
-        JPanel topPanel = new JPanel();
+        // 顶部操作条：暗色面板 + 统一留白
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        UIStyle.apply(topPanel);
+        topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         topPanel.add(globalButton);
         topPanel.add(mineButton);
         topPanel.add(backButton);
 
         add(topPanel, BorderLayout.NORTH);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
 
         // 构造时默认加载全局榜
         loadGlobal();

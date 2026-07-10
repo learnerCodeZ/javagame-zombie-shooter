@@ -1,6 +1,7 @@
 package com.game.ui;
 
 import com.game.model.User;
+import com.game.util.UIStyle;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -11,7 +12,6 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 
 /**
  * 主菜单窗口。
@@ -36,7 +36,7 @@ public class MainFrame extends JFrame {
         String displayName = (currentUser.getNickname() == null || currentUser.getNickname().isEmpty())
                 ? currentUser.getUsername() : currentUser.getNickname();
         setTitle("主菜单 - " + displayName);
-        setSize(480, 400);
+        setSize(480, 420);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         initUI();
@@ -47,13 +47,17 @@ public class MainFrame extends JFrame {
      * "修改密码"对所有用户可见；"用户管理"仅 admin 可见。
      */
     private void initUI() {
-        JButton startButton = createMenuButton("开始游戏");
-        JButton rankButton = createMenuButton("排行榜");
-        JButton changePwdButton = createMenuButton("修改密码");
-        JButton adminButton = createMenuButton("用户管理");
-        JButton helpButton = createMenuButton("游戏说明");
-        JButton settingButton = createMenuButton("设置");
-        JButton logoutButton = createMenuButton("退出登录");
+        // 暗色窗体底
+        getContentPane().setBackground(UIStyle.BG);
+
+        // 按语义分配主色：开始游戏 / 用户管理 → 主色橙；排行榜等次操作 → 次色绿；退出 → 危险红
+        JButton startButton = sizeMenu(UIStyle.primary("开始游戏"));
+        JButton rankButton = sizeMenu(UIStyle.secondary("排行榜"));
+        JButton changePwdButton = sizeMenu(UIStyle.secondary("修改密码"));
+        JButton adminButton = sizeMenu(UIStyle.primary("用户管理"));
+        JButton helpButton = sizeMenu(UIStyle.secondary("游戏说明"));
+        JButton settingButton = sizeMenu(UIStyle.secondary("设置"));
+        JButton logoutButton = sizeMenu(UIStyle.danger("退出登录"));
 
         boolean isAdmin = "admin".equals(currentUser.getRole());
 
@@ -75,10 +79,11 @@ public class MainFrame extends JFrame {
                 e -> JOptionPane.showMessageDialog(this, "设置功能开发中"));
         logoutButton.addActionListener(e -> doLogout());
 
-        // 纵向排列，按钮间留白
+        // 纵向排列，按钮间留白（透明面板，统一暗底）
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(20, 80, 20, 80));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(22, 80, 22, 80));
         addMenuButton(panel, startButton);
         addMenuButton(panel, rankButton);
         addMenuButton(panel, changePwdButton);
@@ -104,16 +109,14 @@ public class MainFrame extends JFrame {
     }
 
     /**
-     * 创建主菜单大按钮：统一宽度、居中、字号放大。
+     * 统一菜单按钮尺寸：横向撑满、固定高度、居中对齐。
      *
-     * @param text 按钮文字
-     * @return 配置好的按钮
+     * @param button 已由 UIStyle 创建好的按钮
+     * @return 同一按钮（便于链式调用）
      */
-    private JButton createMenuButton(String text) {
-        JButton button = new JButton(text);
+    private JButton sizeMenu(JButton button) {
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
-        button.setFont(new Font("微软雅黑", Font.PLAIN, 16));
         return button;
     }
 

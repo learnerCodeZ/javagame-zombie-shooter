@@ -2,6 +2,7 @@ package com.game.ui;
 
 import com.game.dao.UserDao;
 import com.game.model.User;
+import com.game.util.UIStyle;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -13,7 +14,6 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.GridLayout;
 
 /**
@@ -25,15 +25,15 @@ import java.awt.GridLayout;
 public class RegisterFrame extends JFrame {
 
     /** 用户名输入框 */
-    private final JTextField usernameField = new JTextField(15);
+    private final JTextField usernameField = UIStyle.field();
     /** 密码输入框 */
-    private final JPasswordField passwordField = new JPasswordField(15);
+    private final JPasswordField passwordField = UIStyle.passwordField();
     /** 昵称输入框 */
-    private final JTextField nicknameField = new JTextField(15);
+    private final JTextField nicknameField = UIStyle.field();
     /** 注册按钮 */
-    private final JButton registerButton = new JButton("注册");
+    private final JButton registerButton = UIStyle.primary("注册");
     /** 返回按钮 */
-    private final JButton backButton = new JButton("返回");
+    private final JButton backButton = UIStyle.secondary("返回");
 
     /**
      * 构造方法：初始化窗口标题、大小、布局与事件。
@@ -51,23 +51,34 @@ public class RegisterFrame extends JFrame {
      * 初始化界面组件：顶部标题、中间表单、底部按钮区。
      */
     private void initUI() {
-        // 顶部标题
-        JLabel titleLabel = new JLabel("新用户注册", JLabel.CENTER);
-        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 20));
+        // 暗色窗体底
+        getContentPane().setBackground(UIStyle.BG);
+
+        // 顶部标题（橙色标题）
+        JLabel titleLabel = UIStyle.title("新用户注册");
+        titleLabel.setHorizontalAlignment(JLabel.CENTER);
         titleLabel.setBorder(new EmptyBorder(15, 0, 10, 0));
 
-        // 中间表单：用户名 / 密码 / 昵称
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
-        formPanel.setBorder(new EmptyBorder(10, 40, 10, 40));
-        formPanel.add(new JLabel("用户名：", JLabel.RIGHT));
+        // 中间表单：用户名 / 密码 / 昵称（透明面板，标签右对齐）
+        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 12));
+        formPanel.setOpaque(false);
+        formPanel.setBorder(new EmptyBorder(10, 40, 14, 40));
+        JLabel userLabel = UIStyle.body("用户名：");
+        userLabel.setHorizontalAlignment(JLabel.RIGHT);
+        JLabel pwdLabel = UIStyle.body("密  码：");
+        pwdLabel.setHorizontalAlignment(JLabel.RIGHT);
+        JLabel nickLabel = UIStyle.body("昵  称：");
+        nickLabel.setHorizontalAlignment(JLabel.RIGHT);
+        formPanel.add(userLabel);
         formPanel.add(usernameField);
-        formPanel.add(new JLabel("密  码：", JLabel.RIGHT));
+        formPanel.add(pwdLabel);
         formPanel.add(passwordField);
-        formPanel.add(new JLabel("昵  称：", JLabel.RIGHT));
+        formPanel.add(nickLabel);
         formPanel.add(nicknameField);
 
-        // 底部按钮区
+        // 底部按钮区（透明）
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
         buttonPanel.add(registerButton);
         buttonPanel.add(backButton);

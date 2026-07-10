@@ -4,6 +4,7 @@ import com.game.dao.ResetRequestDao;
 import com.game.dao.UserDao;
 import com.game.model.PasswordResetRequest;
 import com.game.model.User;
+import com.game.util.UIStyle;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -16,7 +17,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
@@ -88,34 +88,40 @@ public class AdminFrame extends JFrame {
      * 初始化界面：上用户表、中申请表、下按钮区。
      */
     private void initUI() {
+        // 暗色窗体底
+        getContentPane().setBackground(UIStyle.BG);
+
         // —— 上方：所有用户表 ——
-        JLabel userLabel = new JLabel("所有用户");
-        userLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        JLabel userLabel = UIStyle.h2("所有用户");
         userLabel.setBorder(new EmptyBorder(8, 10, 4, 0));
         JScrollPane userScroll = new JScrollPane(userTable);
-        userTable.setFillsViewportHeight(true);
+        // 暗色表格 + 暗色滚动面板（行高 / 表头 / 网格 / 选中色由 UIStyle 统一）
+        UIStyle.table(userTable);
+        UIStyle.scrollPane(userScroll);
 
         // —— 中间：待审核申请表 ——
-        JLabel reqLabel = new JLabel("待审核重置申请");
-        reqLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        JLabel reqLabel = UIStyle.h2("待审核重置申请");
         reqLabel.setBorder(new EmptyBorder(8, 10, 4, 0));
         JScrollPane reqScroll = new JScrollPane(requestTable);
-        requestTable.setFillsViewportHeight(true);
+        UIStyle.table(requestTable);
+        UIStyle.scrollPane(reqScroll);
 
         // 两张表纵向叠放，各占一半
         JPanel tablePanel = new JPanel(new java.awt.GridLayout(4, 1, 4, 4));
+        UIStyle.apply(tablePanel);
         tablePanel.setBorder(new EmptyBorder(6, 10, 6, 10));
         tablePanel.add(userLabel);
         tablePanel.add(userScroll);
         tablePanel.add(reqLabel);
         tablePanel.add(reqScroll);
 
-        // —— 下方：按钮区 ——
-        JButton approveButton = new JButton("通过");
-        JButton rejectButton = new JButton("拒绝");
-        JButton deleteButton = new JButton("删除用户");
-        JButton refreshButton = new JButton("刷新");
-        JButton backButton = new JButton("返回");
+        // —— 下方：按钮区（按语义分配主色） ——
+        // 通过 → 主色橙；拒绝 / 刷新 / 返回 → 次色绿；删除用户 → 危险红
+        JButton approveButton = UIStyle.primary("通过");
+        JButton rejectButton = UIStyle.secondary("拒绝");
+        JButton deleteButton = UIStyle.danger("删除用户");
+        JButton refreshButton = UIStyle.secondary("刷新");
+        JButton backButton = UIStyle.secondary("返回");
         approveButton.addActionListener(e -> doApprove());
         rejectButton.addActionListener(e -> doReject());
         deleteButton.addActionListener(e -> doDeleteUser());
@@ -123,6 +129,7 @@ public class AdminFrame extends JFrame {
         backButton.addActionListener(e -> dispose());
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        UIStyle.apply(buttonPanel);
         buttonPanel.add(approveButton);
         buttonPanel.add(rejectButton);
         buttonPanel.add(deleteButton);

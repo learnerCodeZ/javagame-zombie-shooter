@@ -6,6 +6,7 @@ import com.game.game.GamePanel;
 import com.game.model.GameRecord;
 import com.game.model.User;
 import com.game.util.GameSettings;
+import com.game.util.UIStyle;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -66,6 +67,8 @@ public class GameWindow extends JFrame {
         setSize(820, 640);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        // 窗体内容底设为最深的 BG，与暗色主题统一（画布会完整覆盖，此处主要防边缘闪白）
+        getContentPane().setBackground(UIStyle.BG);
 
         // 创建控制器，注册游戏结束回调（血量归零 → 结算）
         this.controller = new GameController();
@@ -172,12 +175,13 @@ public class GameWindow extends JFrame {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(new EmptyBorder(16, 20, 16, 20));
+        UIStyle.apply(content); // 设置菜单面板：PANEL 底色 + 不透明
 
         // 音量行：标签 + 实时数值
         Box volRow = Box.createHorizontalBox();
         volRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel volLabel = new JLabel("音量:");
-        JLabel volValue = new JLabel(String.valueOf(GameSettings.getVolume()));
+        JLabel volLabel = UIStyle.body("音量:");
+        JLabel volValue = UIStyle.body(String.valueOf(GameSettings.getVolume()));
         volValue.setPreferredSize(new Dimension(36, 22));
         volRow.add(volLabel);
         volRow.add(Box.createHorizontalStrut(8));
@@ -191,6 +195,9 @@ public class GameWindow extends JFrame {
         slider.setAlignmentX(Component.LEFT_ALIGNMENT);
         slider.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
         slider.setFocusable(false);
+        slider.setBackground(UIStyle.PANEL);
+        slider.setForeground(UIStyle.TEXT);
+        slider.setOpaque(true);
         slider.addChangeListener(e -> {
             int v = slider.getValue();
             GameSettings.setVolume(v);
@@ -203,6 +210,9 @@ public class GameWindow extends JFrame {
         JCheckBox muteBox = new JCheckBox("静音", GameSettings.isMuted());
         muteBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         muteBox.setFocusable(false);
+        muteBox.setBackground(UIStyle.PANEL);
+        muteBox.setForeground(UIStyle.TEXT);
+        muteBox.setOpaque(true);
         muteBox.addActionListener(e -> GameSettings.setMuted(muteBox.isSelected()));
         content.add(muteBox);
         content.add(Box.createVerticalStrut(18));
@@ -210,9 +220,9 @@ public class GameWindow extends JFrame {
         // 按钮行：继续游戏 / 再来一局 / 退出游戏
         Box btnRow = Box.createHorizontalBox();
         btnRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JButton resumeBtn = new JButton("继续游戏");
-        JButton restartBtn = new JButton("再来一局");
-        JButton exitBtn = new JButton("退出游戏");
+        JButton resumeBtn = UIStyle.primary("继续游戏");
+        JButton restartBtn = UIStyle.secondary("再来一局");
+        JButton exitBtn = UIStyle.danger("退出游戏");
         btnRow.add(resumeBtn);
         btnRow.add(Box.createHorizontalStrut(8));
         btnRow.add(restartBtn);

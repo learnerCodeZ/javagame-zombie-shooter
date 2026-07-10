@@ -1,5 +1,7 @@
 package com.game.game;
 
+import com.game.util.UIStyle;
+
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import javax.swing.SwingUtilities;
@@ -168,8 +170,8 @@ public class GamePanel extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        // 固定层：底色（不随震屏移动，避免边缘露白）
-        g2.setColor(new Color(238, 238, 242));
+        // 固定层：底色（不随震屏移动，避免边缘露白）—— 暗色主题底
+        g2.setColor(UIStyle.BG);
         g2.fillRect(0, 0, w, h);
 
         // 世界层：受震屏影响整体平移
@@ -216,7 +218,7 @@ public class GamePanel extends JPanel {
      * @param h  画布高度
      */
     private void drawGrid(Graphics2D g2, int w, int h) {
-        g2.setColor(new Color(222, 224, 230));
+        g2.setColor(UIStyle.PANEL);
         int step = 40;
         for (int gx = -step; gx <= w + step; gx += step) {
             g2.drawLine(gx, -step, gx, h + step);
@@ -267,8 +269,8 @@ public class GamePanel extends JPanel {
      * @param g2 画布绘图上下文
      */
     private void drawHud(Graphics2D g2) {
-        // 顶行：分数 / 击杀 / 时间
-        g2.setColor(Color.BLACK);
+        // 顶行：分数 / 击杀 / 时间（暗色画布上用亮色文字保证清晰）
+        g2.setColor(UIStyle.TEXT);
         g2.setFont(new Font("微软雅黑", Font.BOLD, 14));
         String hud = String.format("分数:%d  击杀:%d  时间:%ds",
                 controller.getScore(),
@@ -276,10 +278,10 @@ public class GamePanel extends JPanel {
                 controller.getElapsedSec());
         g2.drawString(hud, 10, 20);
 
-        // 血条：深灰圆角背景 + 分段色前景（绿/黄/红）
+        // 血条：暗色圆角背景 + 分段色前景（绿/黄/红）
         int barX = 10, barY = 28, barW = 200, barH = 14;
         int hp = controller.getHp();
-        g2.setColor(new Color(60, 60, 60));
+        g2.setColor(UIStyle.FIELD);
         g2.fillRoundRect(barX, barY, barW, barH, 6, 6);
         int fgW = (int) (barW * hp / 100.0);
         if (hp > 60) {

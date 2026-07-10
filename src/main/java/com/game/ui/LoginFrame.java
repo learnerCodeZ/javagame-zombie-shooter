@@ -3,7 +3,9 @@ package com.game.ui;
 import com.game.dao.ResetRequestDao;
 import com.game.dao.UserDao;
 import com.game.model.User;
+import com.game.util.UIStyle;
 
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -14,7 +16,6 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.GridLayout;
 
 /**
@@ -26,22 +27,22 @@ import java.awt.GridLayout;
 public class LoginFrame extends JFrame {
 
     /** 用户名输入框 */
-    private final JTextField usernameField = new JTextField(15);
+    private final JTextField usernameField = UIStyle.field();
     /** 密码输入框 */
-    private final JPasswordField passwordField = new JPasswordField(15);
+    private final JPasswordField passwordField = UIStyle.passwordField();
     /** 登录按钮 */
-    private final JButton loginButton = new JButton("登录");
+    private final JButton loginButton = UIStyle.primary("登录");
     /** 跳转注册按钮 */
-    private final JButton toRegisterButton = new JButton("去注册");
+    private final JButton toRegisterButton = UIStyle.secondary("去注册");
     /** 忘记密码按钮（提交重置申请，等管理员审核） */
-    private final JButton resetButton = new JButton("忘记密码?");
+    private final JButton resetButton = UIStyle.secondary("忘记密码?");
 
     /**
      * 构造方法：初始化窗口标题、大小、布局与事件。
      */
     public LoginFrame() {
         setTitle("登录");
-        setSize(420, 320);
+        setSize(420, 340);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         initUI();
@@ -52,38 +53,44 @@ public class LoginFrame extends JFrame {
      * 初始化界面组件：顶部标题、中间表单、底部按钮区。
      */
     private void initUI() {
-        // 顶部标题
-        JLabel titleLabel = new JLabel("打僵尸射击游戏", JLabel.CENTER);
-        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 20));
-        titleLabel.setBorder(new EmptyBorder(15, 0, 10, 0));
+        // 暗色窗体底
+        getContentPane().setBackground(UIStyle.BG);
 
-        // 中间表单：用户名 / 密码
-        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10));
-        formPanel.setBorder(new EmptyBorder(10, 40, 10, 40));
-        formPanel.add(new JLabel("用户名：", JLabel.RIGHT));
+        // 顶部标题（橙色标题）
+        JLabel titleLabel = UIStyle.title("打僵尸射击游戏");
+        titleLabel.setHorizontalAlignment(JLabel.CENTER);
+        titleLabel.setBorder(new EmptyBorder(20, 0, 14, 0));
+
+        // 中间表单：用户名 / 密码（透明面板，标签右对齐）
+        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 12));
+        formPanel.setOpaque(false);
+        formPanel.setBorder(new EmptyBorder(10, 40, 14, 40));
+        JLabel userLabel = UIStyle.body("用户名：");
+        userLabel.setHorizontalAlignment(JLabel.RIGHT);
+        JLabel pwdLabel = UIStyle.body("密  码：");
+        pwdLabel.setHorizontalAlignment(JLabel.RIGHT);
+        formPanel.add(userLabel);
         formPanel.add(usernameField);
-        formPanel.add(new JLabel("密  码：", JLabel.RIGHT));
+        formPanel.add(pwdLabel);
         formPanel.add(passwordField);
 
-        // 底部按钮区
+        // 底部按钮区（透明）
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        buttonPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(0, 0, 4, 0));
         buttonPanel.add(loginButton);
         buttonPanel.add(toRegisterButton);
 
-        // "忘记密码?" 单独一行居中，作为链接式入口
+        // "忘记密码?" 单独一行居中
         JPanel resetPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        resetPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
-        resetButton.setBorderPainted(false);
-        resetButton.setContentAreaFilled(false);
-        resetButton.setForeground(new java.awt.Color(0, 102, 204));
-        resetButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        resetButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        resetPanel.setOpaque(false);
+        resetPanel.setBorder(new EmptyBorder(0, 0, 18, 0));
         resetPanel.add(resetButton);
 
         // 南区纵向叠放按钮区 + 忘记密码链接
         JPanel southPanel = new JPanel();
-        southPanel.setLayout(new javax.swing.BoxLayout(southPanel, javax.swing.BoxLayout.Y_AXIS));
+        southPanel.setLayout(new BoxLayout(southPanel, BoxLayout.Y_AXIS));
+        southPanel.setOpaque(false);
         southPanel.add(buttonPanel);
         southPanel.add(resetPanel);
 

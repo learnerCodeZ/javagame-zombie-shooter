@@ -1,9 +1,9 @@
 package com.game;
 
 import com.game.ui.LoginFrame;
+import com.game.util.UIStyle;
 
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 
 /**
  * 程序入口。
@@ -13,12 +13,8 @@ import javax.swing.UIManager;
 public class GameApp {
 
     public static void main(String[] args) {
-        // 设置系统原生外观，让窗口风格跟随当前操作系统
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // 最先初始化全局暗色主题（现代游戏风：橙/绿主色），覆盖原系统外观设置
+        UIStyle.initGlobalTheme();
 
         System.out.println("=== 打僵尸射击游戏 ===");
         System.out.println("阶段③：启动 Swing 登录界面。");

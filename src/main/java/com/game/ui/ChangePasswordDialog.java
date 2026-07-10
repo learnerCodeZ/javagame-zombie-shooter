@@ -2,6 +2,7 @@ package com.game.ui;
 
 import com.game.dao.UserDao;
 import com.game.model.User;
+import com.game.util.UIStyle;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -12,7 +13,6 @@ import javax.swing.JPasswordField;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
 
@@ -27,11 +27,11 @@ public class ChangePasswordDialog extends JDialog {
     /** 当前登录用户 */
     private final User currentUser;
     /** 旧密码输入框 */
-    private final JPasswordField oldPwdField = new JPasswordField(15);
+    private final JPasswordField oldPwdField = UIStyle.passwordField();
     /** 新密码输入框 */
-    private final JPasswordField newPwdField = new JPasswordField(15);
+    private final JPasswordField newPwdField = UIStyle.passwordField();
     /** 确认新密码输入框 */
-    private final JPasswordField confirmPwdField = new JPasswordField(15);
+    private final JPasswordField confirmPwdField = UIStyle.passwordField();
 
     /**
      * 构造方法：模态对话框，依附于主菜单窗。
@@ -55,25 +55,39 @@ public class ChangePasswordDialog extends JDialog {
      * 初始化界面：顶部标题、中间表单（三行密码框）、底部按钮区。
      */
     private void initUI() {
-        JLabel titleLabel = new JLabel("修改密码", JLabel.CENTER);
-        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 18));
-        titleLabel.setBorder(new EmptyBorder(10, 0, 10, 0));
+        // 内容面板 PANEL 底（卡片效果）
+        getContentPane().setBackground(UIStyle.PANEL);
 
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
+        // 顶部标题
+        JLabel titleLabel = UIStyle.h2("修改密码");
+        titleLabel.setHorizontalAlignment(JLabel.CENTER);
+        titleLabel.setBorder(new EmptyBorder(12, 0, 10, 0));
+
+        // 中间表单：三行密码框（透明面板，标签右对齐）
+        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 12));
+        formPanel.setOpaque(false);
         formPanel.setBorder(new EmptyBorder(10, 30, 10, 30));
-        formPanel.add(new JLabel("旧密码：", JLabel.RIGHT));
+        JLabel oldLabel = UIStyle.body("旧密码：");
+        oldLabel.setHorizontalAlignment(JLabel.RIGHT);
+        JLabel newLabel = UIStyle.body("新密码：");
+        newLabel.setHorizontalAlignment(JLabel.RIGHT);
+        JLabel confirmLabel = UIStyle.body("确认新密码：");
+        confirmLabel.setHorizontalAlignment(JLabel.RIGHT);
+        formPanel.add(oldLabel);
         formPanel.add(oldPwdField);
-        formPanel.add(new JLabel("新密码：", JLabel.RIGHT));
+        formPanel.add(newLabel);
         formPanel.add(newPwdField);
-        formPanel.add(new JLabel("确认新密码：", JLabel.RIGHT));
+        formPanel.add(confirmLabel);
         formPanel.add(confirmPwdField);
 
-        JButton okButton = new JButton("确认");
-        JButton cancelButton = new JButton("取消");
+        // 底部按钮区（透明）
+        JButton okButton = UIStyle.primary("确认");
+        JButton cancelButton = UIStyle.secondary("取消");
         okButton.addActionListener(e -> doSubmit());
         cancelButton.addActionListener(e -> dispose());
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
