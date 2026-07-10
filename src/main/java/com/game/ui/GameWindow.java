@@ -35,7 +35,7 @@ import java.awt.event.WindowEvent;
  *       {@link #settle()}（写战绩 + 弹"再来一局 / 回主菜单"，死亡不二次确认）；</li>
  *   <li>点右上角"设置"按钮：打开 {@link #openSettings()} 暂停循环，菜单内可调音量/静音、
  *       继续、再来一局（确认）、回主菜单（确认）；</li>
- *   <li>点 X 关窗：确认后结算存档并回主菜单（与"退出游戏"按钮一致；取消则继续游戏）。</li>
+ *   <li>点 X 关窗：确认后结算存档并回主菜单（与“回主菜单”按钮一致；取消则继续游戏）。</li>
  * </ul>
  *
  * <p>用 {@link #settled} 保证死亡结算只执行一次；用 {@link #settingsOpen} 防止设置菜单被重复打开。
@@ -89,7 +89,7 @@ public class GameWindow extends JFrame {
         // 右上角"设置"按钮：暂停循环 + 打开"设置/暂停"菜单
         this.panel.setOnSettings(() -> SwingUtilities.invokeLater(this::openSettings));
 
-        // 窗口可见后启动循环；点 X 关窗时确认后结算存档再回主菜单（与"退出游戏"按钮一致，避免静默丢局）
+        // 窗口可见后启动循环；点 X 关窗时确认后结算存档再回主菜单（与“回主菜单”按钮一致，避免静默丢局）
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowOpened(WindowEvent e) {
@@ -253,12 +253,12 @@ public class GameWindow extends JFrame {
         content.add(muteBox);
         content.add(Box.createVerticalStrut(18));
 
-        // 按钮行：继续游戏 / 再来一局 / 退出游戏
+        // 按钮行：继续游戏 / 再来一局 / 回主菜单
         Box btnRow = Box.createHorizontalBox();
         btnRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         JButton resumeBtn = UIStyle.primary("继续游戏");
         JButton restartBtn = UIStyle.secondary("再来一局");
-        JButton exitBtn = UIStyle.danger("退出游戏");
+        JButton exitBtn = UIStyle.danger("回主菜单");
         btnRow.add(resumeBtn);
         btnRow.add(Box.createHorizontalStrut(8));
         btnRow.add(restartBtn);
@@ -287,10 +287,10 @@ public class GameWindow extends JFrame {
             }
         });
 
-        // 退出游戏：确认；YES 则关菜单 + 存档 + 弹结算(带"确定"键) + 回主菜单；NO 留在菜单
+        // 回主菜单：确认；YES 则关菜单 + 存档 + 弹结算(带"确定"键) + 回主菜单；NO 留在菜单
         exitBtn.addActionListener(e -> {
             int c = JOptionPane.showConfirmDialog(dialog,
-                    "确定退出游戏?本局将结算存档", "确认",
+                    "确定回主菜单?本局将结算存档", "确认",
                     JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
             if (c == JOptionPane.YES_OPTION) {
                 dialog.dispose();

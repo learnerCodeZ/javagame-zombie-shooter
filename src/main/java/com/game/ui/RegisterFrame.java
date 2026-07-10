@@ -111,6 +111,11 @@ public class RegisterFrame extends JFrame {
                     "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        if (username.length() > 50) {
+            JOptionPane.showMessageDialog(this, "用户名不能超过 50 个字符",
+                    "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (password.isEmpty() || password.length() < 6) {
             JOptionPane.showMessageDialog(this, "密码不能为空且长度不少于6位",
                     "提示", JOptionPane.WARNING_MESSAGE);
@@ -119,6 +124,11 @@ public class RegisterFrame extends JFrame {
         // 昵称留空时默认使用用户名，避免数据库昵称列非空时报错
         if (nickname.isEmpty()) {
             nickname = username;
+        }
+        if (nickname.length() > 50) {
+            JOptionPane.showMessageDialog(this, "昵称不能超过 50 个字符",
+                    "提示", JOptionPane.WARNING_MESSAGE);
+            return;
         }
         // 构造用户并写库
         User user = new User();

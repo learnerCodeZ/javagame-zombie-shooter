@@ -150,7 +150,12 @@ public class UserDao {
      * @return true 表示已删除；目标不存在 / 是 admin / 出错则返回 false
      */
     public boolean deleteUser(int userId) {
-        try (Connection conn = DBUtil.getConnection()) {
+        // 三步删除包在同一事务里：任一步失败整体回滚，避免出现
+        // “战绩/申请已清空但账号还在”的不一致孤儿状态（参考 ResetRequestDao.approve）
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
             // 先查 role：admin 账号连数据都不可动，直接拦截
             String role = null;
             try (PreparedStatement ps0 = conn.prepareStatement(
@@ -163,7 +168,8 @@ public class UserDao {
                 }
             }
             if (!"user".equals(role)) {
-                // 用户不存在 或 是 admin：不删
+                // 用户不存在 或 是 admin：不删（无写操作，回滚以结束事务）
+                conn.rollback();
                 return false;
             }
             // 普通用户：先清掉两张子表的外键依赖，避免外键约束报错
@@ -178,14 +184,37 @@ public class UserDao {
                 ps2.executeUpdate();
             }
             // 再删 user，且 admin 不可删（兜底）
+            boolean deleted;
             try (PreparedStatement ps3 = conn.prepareStatement(
                     "DELETE FROM user WHERE id = ? AND role <> 'admin'")) {
                 ps3.setInt(1, userId);
-                return ps3.executeUpdate() > 0;
+                deleted = ps3.executeUpdate() > 0;
             }
+            // 第三步若实际未删（并发下 role 被改成 admin 等，0 行受影响）则回滚前两步，
+            // 不留“子表已清空但账号还在”的孤儿；只有真正删掉才提交
+            if (deleted) {
+                conn.commit();
+            } else {
+                conn.rollback();
+            }
+            return deleted;
         } catch (SQLException e) {
             e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
+            }
         }
     }
 

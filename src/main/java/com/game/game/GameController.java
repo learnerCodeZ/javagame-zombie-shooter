@@ -201,26 +201,35 @@ public class GameController {
         double speed = brute ? (0.6 + random.nextDouble() * 0.4) : (1.0 + random.nextDouble());
         double px = player.getX();
         double py = player.getY();
-        double x;
-        double y;
-        int edge = random.nextInt(4);
-        switch (edge) {
-            case 0: // 上边
-                x = random.nextDouble() * WIDTH;
-                y = 0;
-                break;
-            case 1: // 下边
-                x = random.nextDouble() * WIDTH;
-                y = HEIGHT;
-                break;
-            case 2: // 左边
-                x = 0;
-                y = random.nextDouble() * HEIGHT;
-                break;
-            default: // 右边
-                x = WIDTH;
-                y = random.nextDouble() * HEIGHT;
-                break;
+        // 选生成点：在四条边随机选，但必须离玩家足够远——
+        // 否则贴墙的玩家会被“凭空”生成在身上的僵尸第一帧就撞到扣血（躲不开）
+        int zr = brute ? 26 : 18;
+        double safeDist = player.getRadius() + zr + 40;
+        double x = 0;
+        double y = 0;
+        for (int attempt = 0; attempt < 10; attempt++) {
+            int edge = random.nextInt(4);
+            switch (edge) {
+                case 0: // 上边
+                    x = random.nextDouble() * WIDTH;
+                    y = 0;
+                    break;
+                case 1: // 下边
+                    x = random.nextDouble() * WIDTH;
+                    y = HEIGHT;
+                    break;
+                case 2: // 左边
+                    x = 0;
+                    y = random.nextDouble() * HEIGHT;
+                    break;
+                default: // 右边
+                    x = WIDTH;
+                    y = random.nextDouble() * HEIGHT;
+                    break;
+            }
+            if (Math.hypot(x - px, y - py) >= safeDist) {
+                break; // 已远离玩家，采用这个生成点
+            }
         }
         Zombie.Type type = brute ? Zombie.Type.BRUTE : Zombie.Type.NORMAL;
         zombies.add(new Zombie(type, x, y, speed, px, py));
