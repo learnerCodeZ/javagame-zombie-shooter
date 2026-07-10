@@ -2,35 +2,44 @@ package com.game.util;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 合成音效工具：用代码现场生成 PCM 采样并播放，不依赖任何外部音频文件。
  * <p>提供四种局内音效：{@link #shoot()} 开火、{@link #hit()} 命中僵尸、
  * {@link #hurt()} 玩家受伤、{@link #gameOver()} 游戏结束。
  *
+ * <h3>播放模型（单线路 + 队列 + 专用线程）</h3>
+ * 早期版本每次播音都新开一条 {@link SourceDataLine}，连射/多音并发时会
+ * 耗尽或争抢混音器线路，抛 {@link LineUnavailableException}（被静默吞掉），
+ * 表现为"有时候没声音"。现改为：
+ * <ol>
+ *   <li>全局只开<b>一条</b> {@link SourceDataLine}（首次播放时懒加载、长期复用），
+ *       不再每音效 open/close，<b>从根本上避免线路耗尽</b>。</li>
+ *   <li>所有音效把"合成+写入"任务丢进 {@link #playQueue}，
+ *       由<b>单一消费线程</b>串行处理，保证对共享线路的访问不会并发冲突。</li>
+ *   <li>{@link #shoot()} 加防抖（两次最少间隔 {@link #SHOOT_DEBOUNCE_MS} ms），
+ *       避免连射把队列堆爆、声音滞后。</li>
+ * </ol>
+ *
  * <h3>合成原理</h3>
  * <ol>
- *   <li>采样参数：{@code 44100Hz / 16bit / 单声道 / 有符号 / 小端序} 的
- *       {@link AudioFormat}，由 {@link AudioFormat} 描述给 {@link SourceDataLine}。</li>
- *   <li>生成波形：逐帧计算归一化样本（方波用 {@code signum(sin)}，正弦用 {@code sin}），
- *       再叠加一条指数衰减包络 {@code exp(-decay*t)} 模拟"打一下就消散"。</li>
- *   <li>频率扫描（如 hurt 的下滑）：逐帧累加相位 {@code phase += 2π·freq·dt}，
- *       让频率随时间从高滑到低，得到下滑音。</li>
- *   <li>振幅缩放：按 {@link GameSettings#getVolume()}/100 缩放最大幅值后，
- *       把每个 short 拆成小端序两字节写入缓冲区。</li>
- *   <li>播放：交给 {@link SourceDataLine} 的 {@code write/drain} 推送到声卡。</li>
+ *   <li>采样参数：{@code 44100Hz / 16bit / 单声道 / 有符号 / 小端序}。</li>
+ *   <li>波形：方波 {@code signum(sin)}、正弦 {@code sin}，叠加指数衰减包络 {@code exp(-decay*t)}。</li>
+ *   <li>频率扫描（hurt 下滑）：逐帧累加相位 {@code phase += 2π·freq·dt}，避免相位跳变咔哒声。</li>
+ *   <li>振幅按 {@link GameSettings#getVolume()}/100 缩放，short 拆小端序两字节写入。</li>
  * </ol>
  *
  * <h3>不阻塞 / 不崩原则</h3>
  * <ul>
- *   <li>每个音效先判 {@link GameSettings#isMuted()} 与音量；为 0 直接 return。</li>
- *   <li>否则<b>起一个守护线程</b>异步合成并播放（fire-and-forget），
- *       绝不阻塞 EDT 与游戏循环（Timer 也跑在 EDT 上）。</li>
- *   <li>线程内整段 {@code try/catch(Exception)}：无音频设备、
- *       {@link javax.sound.sampled.LineUnavailableException} 等任何异常一律<b>静默吞掉</b>，
+ *   <li>静音或音量为 0 直接 return，不入队。</li>
+ *   <li>合成与播放都在专用守护线程完成，绝不阻塞 EDT 与游戏循环。</li>
+ *   <li>整段 {@code try/catch}：无音频设备 / {@link LineUnavailableException} 等异常一律静默吞掉，
  *       音效是锦上添花，绝不让游戏崩。</li>
- *   <li>线程 {@code setDaemon(true)}，JVM 退出时不被这些短音拖住。</li>
+ *   <li>消费线程为守护线程，JVM 退出时不会被拖住。</li>
  * </ul>
  */
 public final class SoundUtil {
@@ -43,25 +52,103 @@ public final class SoundUtil {
     private static final float SAMPLE_RATE = 44100f;
     /** 基准最大幅值（约满幅 1/3，避免削波失真，再按音量缩放） */
     private static final double MAX_AMP = 10000.0;
+    /** 起音(attack)时长（秒）：开头淡入，柔化起声、消除瞬态"咔"声 */
+    private static final double ATTACK_SEC = 0.005;
+    /** 统一的音频格式 */
+    private static final AudioFormat FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
+
+    /** 开火防抖：两次开火音最少间隔（毫秒），避免连射堆爆播放队列 */
+    private static final long SHOOT_DEBOUNCE_MS = 40;
+    /** 待播放队列上限：shoot/hit 超过则丢弃，防止连射积压导致"停火后还在响" */
+    private static final int MAX_PENDING = 2;
+    /** 上次开火音的时间戳（防抖用） */
+    private static volatile long lastShootMs = Long.MIN_VALUE / 2;
+
+    /** 全局唯一复用的音频线（首次播放时懒加载）。所有音效共用，避免反复开/关线路耗尽线路。 */
+    private static volatile SourceDataLine sharedLine;
+    /** 线路懒加载锁 */
+    private static final Object LINE_LOCK = new Object();
+
+    /** 待播放任务队列（每项 = 合成 PCM + 写入线路）。单一消费线程串行处理。 */
+    private static final BlockingQueue<Runnable> playQueue = new LinkedBlockingQueue<>();
+
+    static {
+        // 启动专用播放守护线程：阻塞取队列任务 → 确保线路 → 执行（合成 + write）
+        Thread player = new Thread(SoundUtil::playLoop, "sound-player");
+        player.setDaemon(true);
+        player.start();
+    }
 
     /**
-     * 开火音：880Hz 方波，约 50ms，快衰减，听感清脆。
+     * 播放消费循环：不断从队列取任务并执行。任何异常都吞掉、继续下一个。
+     */
+    private static void playLoop() {
+        while (true) {
+            try {
+                Runnable task = playQueue.take();
+                ensureLine();
+                task.run();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Throwable t) {
+                // 播放异常（含 LineUnavailable）不影响游戏，继续消费下一个
+            }
+        }
+    }
+
+    /**
+     * 懒加载并复用唯一音频线；打不开（无声卡等）则 sharedLine 保持 null，播放自动静默。
+     */
+    private static void ensureLine() {
+        SourceDataLine line = sharedLine;
+        if (line != null && line.isOpen()) {
+            return;
+        }
+        synchronized (LINE_LOCK) {
+            if (sharedLine == null || !sharedLine.isOpen()) {
+                try {
+                    SourceDataLine l = AudioSystem.getSourceDataLine(FORMAT);
+                    l.open(FORMAT);
+                    l.start();
+                    sharedLine = l;
+                } catch (LineUnavailableException | SecurityException e) {
+                    sharedLine = null; // 无可用音频线：静默降级，不崩
+                }
+            }
+        }
+    }
+
+    /**
+     * 开火音：600Hz 正弦，约 40ms（短促，播得比射速快，不积压），起音淡入，听感柔和。
+     * 带防抖；队列积压超 {@value #MAX_PENDING} 时丢弃，避免"停火后还在响"。
      */
     public static void shoot() {
         if (shouldSkip()) {
             return;
         }
-        playAsync(() -> buildTone(880, 50, 30, true));
+        long now = System.currentTimeMillis();
+        if (now - lastShootMs < SHOOT_DEBOUNCE_MS) {
+            return; // 防抖：距上次开火音太近，本次跳过
+        }
+        lastShootMs = now;
+        if (playQueue.size() >= MAX_PENDING) {
+            return; // 队列已积压，丢弃本次，避免"停火后还在响"
+        }
+        enqueue(() -> writeBuffer(buildTone(600, 40, 25, false)));
     }
 
     /**
-     * 命中僵尸音：220Hz 方波，约 70ms，听感为低沉"啪"的击打。
+     * 命中僵尸音：150Hz 正弦，约 60ms，起音淡入，听感为柔和低沉的击打。队列积压超限时丢弃。
      */
     public static void hit() {
         if (shouldSkip()) {
             return;
         }
-        playAsync(() -> buildTone(220, 70, 18, true));
+        if (playQueue.size() >= MAX_PENDING) {
+            return; // 队列已积压，丢弃本次
+        }
+        enqueue(() -> writeBuffer(buildTone(150, 60, 12, false)));
     }
 
     /**
@@ -71,18 +158,17 @@ public final class SoundUtil {
         if (shouldSkip()) {
             return;
         }
-        playAsync(() -> buildSweep(400, 200, 120, 8));
+        enqueue(() -> writeBuffer(buildSweep(400, 200, 120, 8)));
     }
 
     /**
-     * 游戏结束音：一串递降正弦音符（660→520→392→262Hz），
-     * 听感为"完蛋了"的下沉旋律。
+     * 游戏结束音：一串递降正弦音符（660→520→392→262Hz），听感为"完蛋了"的下沉旋律。
      */
     public static void gameOver() {
         if (shouldSkip()) {
             return;
         }
-        playAsync(() -> buildNotes(new double[]{660, 520, 392, 262}, 180, 4, false));
+        enqueue(() -> writeBuffer(buildNotes(new double[]{660, 520, 392, 262}, 180, 4, false)));
     }
 
     /**
@@ -95,29 +181,30 @@ public final class SoundUtil {
     }
 
     /**
-     * 在守护线程中合成并播放一段波形（fire-and-forget）。
-     * <p>所有音频异常被静默吞掉，绝不外泄。
+     * 把一段"合成+写入"任务入队，由消费线程串行处理。
      *
-     * @param builder 构造 PCM 字节缓冲区的回调
+     * @param task 播放任务
      */
-    private static void playAsync(WaveBuilder builder) {
-        Thread t = new Thread(() -> {
-            try {
-                byte[] buffer = builder.build();
-                AudioFormat format = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
-                SourceDataLine line = AudioSystem.getSourceDataLine(format);
-                line.open(format, buffer.length);
-                line.start();
-                line.write(buffer, 0, buffer.length);
-                line.drain();
-                line.stop();
-                line.close();
-            } catch (Exception e) {
-                // 静默吞掉：无设备 / LineUnavailable / 任何音频异常都不影响游戏
-            }
-        }, "sound-fx");
-        t.setDaemon(true);
-        t.start();
+    private static void enqueue(Runnable task) {
+        playQueue.offer(task);
+    }
+
+    /**
+     * 把 PCM 缓冲写入共享线路（在消费线程中调用）；线路不可用则跳过。
+     * <p>{@link SourceDataLine#write} 在内部缓冲满时会阻塞，天然起到限速作用。
+     *
+     * @param buffer 16bit 小端序 PCM 字节缓冲区
+     */
+    private static void writeBuffer(byte[] buffer) {
+        SourceDataLine line = sharedLine;
+        if (line == null) {
+            return;
+        }
+        try {
+            line.write(buffer, 0, buffer.length);
+        } catch (Exception e) {
+            // 线路写入异常忽略
+        }
     }
 
     /**
@@ -136,10 +223,11 @@ public final class SoundUtil {
         for (int i = 0; i < samples; i++) {
             double t = i / (double) SAMPLE_RATE;
             double env = Math.exp(-decay * t);
+            double atk = t < ATTACK_SEC ? (t / ATTACK_SEC) : 1.0; // 起音淡入，柔化起声
             double s = square
                     ? Math.signum(Math.sin(2 * Math.PI * freq * t))
                     : Math.sin(2 * Math.PI * freq * t);
-            appendSample(buffer, i, s * amp * env);
+            appendSample(buffer, i, s * amp * env * atk);
         }
         return buffer;
     }
@@ -164,8 +252,10 @@ public final class SoundUtil {
             double progress = (double) i / samples;
             double freq = freqStart + (freqEnd - freqStart) * progress;
             phase += 2 * Math.PI * freq * dt;
-            double env = Math.exp(-decay * (i * dt));
-            appendSample(buffer, i, Math.sin(phase) * amp * env);
+            double t = i * dt;
+            double env = Math.exp(-decay * t);
+            double atk = t < ATTACK_SEC ? (t / ATTACK_SEC) : 1.0; // 起音淡入
+            appendSample(buffer, i, Math.sin(phase) * amp * env * atk);
         }
         return buffer;
     }
@@ -173,10 +263,10 @@ public final class SoundUtil {
     /**
      * 合成多个递降音符的序列：把每个音符的 PCM 首尾拼接。
      *
-     * @param freqs     各音符频率（按顺序播放）
-     * @param eachMs    每个音符时长（毫秒）
-     * @param decay     包络衰减系数
-     * @param square    true 为方波，false 为正弦
+     * @param freqs  各音符频率（按顺序播放）
+     * @param eachMs 每个音符时长（毫秒）
+     * @param decay  包络衰减系数
+     * @param square true 为方波，false 为正弦
      * @return 拼接后的 16bit 小端序 PCM 字节缓冲区
      */
     private static byte[] buildNotes(double[] freqs, int eachMs, double decay, boolean square) {
@@ -212,16 +302,5 @@ public final class SoundUtil {
         short val = (short) v;
         buffer[2 * index] = (byte) (val & 0xff);          // 低字节
         buffer[2 * index + 1] = (byte) ((val >> 8) & 0xff); // 高字节
-    }
-
-    /** 构造一段 PCM 字节缓冲区的回调（函数式接口）。 */
-    @FunctionalInterface
-    private interface WaveBuilder {
-        /**
-         * 构造缓冲区。
-         *
-         * @return 16bit 小端序 PCM 字节缓冲区
-         */
-        byte[] build();
     }
 }
