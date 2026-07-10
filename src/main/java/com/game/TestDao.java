@@ -56,14 +56,14 @@ public class TestDao {
 
         // 4) 全局榜前 10
         System.out.println("【全局榜 Top10】");
-        List<GameRecord> top = recordDao.topN(10);
+        List<GameRecord> top = recordDao.topN(10, "EASY");
         for (int i = 0; i < top.size(); i++) {
             System.out.println("  " + (i + 1) + ". " + top.get(i));
         }
 
         // 5) 我的记录
         System.out.println("【我的记录】");
-        for (GameRecord r : recordDao.mine(loginUser.getId())) {
+        for (GameRecord r : recordDao.mine(loginUser.getId(), "EASY")) {
             System.out.println("  " + r);
         }
 

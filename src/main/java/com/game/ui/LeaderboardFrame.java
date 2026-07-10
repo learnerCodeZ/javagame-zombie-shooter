@@ -1,26 +1,34 @@
 package com.game.ui;
 
 import com.game.dao.RecordDao;
+import com.game.game.Difficulty;
 import com.game.model.GameRecord;
 import com.game.model.User;
 import com.game.util.UIStyle;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.FlowLayout;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
  * 排行榜窗口。
- * 展示全局战绩 Top50 或当前用户的个人记录，由顶部按钮切换。
- * 作为独立窗叠加在主菜单之上，关闭后回到主菜单（不重建 MainFrame）。
+ * <p>按<strong>难度</strong>（简单 / 困难）分两个榜，再按<strong>范围</strong>（全局 / 我的）切换：
+ * 顶栏左侧「简单榜 / 困难榜」切难度、右侧「全局榜 / 我的记录」切范围，共 2×2 四种视图。
+ * 当前视图由 {@link #viewLabel} 显示（颜色随难度：简单绿、困难红）。
+ * <p>作为独立窗叠加在主菜单之上，关闭后回到主菜单（不重建 MainFrame）。
  */
 public class LeaderboardFrame extends JFrame {
 
@@ -33,8 +41,15 @@ public class LeaderboardFrame extends JFrame {
     /** 时间格式化器 */
     private final SimpleDateFormat timeFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+    /** 当前查看的难度（默认简单） */
+    private Difficulty currentDifficulty = Difficulty.EASY;
+    /** 是否「我的记录」视图（true=我的 / false=全局） */
+    private boolean mineMode = false;
+    /** 顶部当前视图标签（文字+颜色随难度/范围变化） */
+    private JLabel viewLabel;
+
     /**
-     * 构造方法：初始化窗口并默认加载一次全局榜。
+     * 构造方法：初始化窗口并默认加载一次「简单 · 全局榜」。
      *
      * @param currentUser 当前登录用户
      */
@@ -66,62 +81,70 @@ public class LeaderboardFrame extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         UIStyle.scrollPane(scrollPane);
 
-        // 顶部按钮：全局榜 / 我的记录 → 主色橙；返回 → 次色绿
+        // 难度切换：简单榜→次色绿、困难榜→危险红（对齐游戏内 HUD 的难度配色）
+        JButton easyButton = UIStyle.secondary("简单榜");
+        JButton hardButton = UIStyle.danger("困难榜");
+        // 范围切换：全局榜 / 我的记录 → 主色橙
         JButton globalButton = UIStyle.primary("全局榜");
         JButton mineButton = UIStyle.primary("我的记录");
+        // 返回 → 次色绿
         JButton backButton = UIStyle.secondary("返回");
 
-        globalButton.addActionListener(e -> loadGlobal());
-        mineButton.addActionListener(e -> loadMine());
+        easyButton.addActionListener(e -> { currentDifficulty = Difficulty.EASY; reload(); });
+        hardButton.addActionListener(e -> { currentDifficulty = Difficulty.HARD; reload(); });
+        globalButton.addActionListener(e -> { mineMode = false; reload(); });
+        mineButton.addActionListener(e -> { mineMode = true; reload(); });
         backButton.addActionListener(e -> dispose());
 
-        // 顶部操作条：暗色面板 + 统一留白
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        // 顶部：第一行当前视图标签，第二行操作按钮（纵向 BoxLayout）
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
         UIStyle.apply(topPanel);
-        topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        topPanel.add(globalButton);
-        topPanel.add(mineButton);
-        topPanel.add(backButton);
+        topPanel.setBorder(new EmptyBorder(8, 10, 4, 10));
+
+        viewLabel = UIStyle.body("");
+        viewLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        topPanel.add(viewLabel);
+        topPanel.add(Box.createVerticalStrut(6));
+
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 4));
+        UIStyle.apply(btnRow);
+        btnRow.add(easyButton);
+        btnRow.add(hardButton);
+        btnRow.add(globalButton);
+        btnRow.add(mineButton);
+        btnRow.add(backButton);
+        topPanel.add(btnRow);
 
         add(topPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
 
-        // 构造时默认加载全局榜
-        loadGlobal();
+        // 构造时默认加载「简单 · 全局榜」
+        reload();
     }
 
     /**
-     * 加载全局排行榜：取分数前 50 名，排名列填 1..N，昵称取 JOIN 得到的昵称。
+     * 按 {@link #currentDifficulty} 与 {@link #mineMode} 重新查询并刷新表格，
+     * 同时更新顶部视图标签（文字+颜色）。
      */
-    private void loadGlobal() {
-        List<GameRecord> list = new RecordDao().topN(50);
-        clearRows();
-        int rank = 1;
-        for (GameRecord r : list) {
-            tableModel.addRow(new Object[]{
-                    rank++,
-                    r.getNickname(),
-                    r.getScore(),
-                    r.getKillCount(),
-                    r.getSurviveSec(),
-                    formatTime(r.getRecordTime())
-            });
-        }
-    }
-
-    /**
-     * 加载当前用户的个人记录：昵称统一用 currentUser 的昵称。
-     */
-    private void loadMine() {
-        List<GameRecord> list = new RecordDao().mine(currentUser.getId());
-        // 昵称为空时回退到用户名，与主菜单标题行为一致
-        String nick = currentUser.getNickname();
-        if (nick == null || nick.isEmpty()) {
-            nick = currentUser.getUsername();
+    private void reload() {
+        RecordDao dao = new RecordDao();
+        List<GameRecord> list;
+        // 「我的记录」昵称统一用当前用户的昵称；「全局榜」用 JOIN 得到的每条昵称
+        String mineNick = null;
+        if (mineMode) {
+            list = dao.mine(currentUser.getId(), currentDifficulty.name());
+            mineNick = currentUser.getNickname();
+            if (mineNick == null || mineNick.isEmpty()) {
+                mineNick = currentUser.getUsername();
+            }
+        } else {
+            list = dao.topN(50, currentDifficulty.name());
         }
         clearRows();
         int rank = 1;
         for (GameRecord r : list) {
+            String nick = mineMode ? mineNick : r.getNickname();
             tableModel.addRow(new Object[]{
                     rank++,
                     nick,
@@ -131,6 +154,18 @@ public class LeaderboardFrame extends JFrame {
                     formatTime(r.getRecordTime())
             });
         }
+        updateViewLabel();
+    }
+
+    /**
+     * 更新顶部视图标签：文字「当前：难度 · 范围」，颜色随难度（简单绿 / 困难红）。
+     */
+    private void updateViewLabel() {
+        String scope = mineMode ? "我的记录" : "全局榜";
+        viewLabel.setText("当前：" + currentDifficulty.label + " · " + scope);
+        viewLabel.setForeground(currentDifficulty == Difficulty.HARD
+                ? new Color(235, 90, 90)
+                : new Color(90, 200, 120));
     }
 
     /**

@@ -278,6 +278,14 @@ public class GamePanel extends JPanel {
                 controller.getElapsedSec());
         g2.drawString(hud, 10, 20);
 
+        // 难度标签（紧跟 HUD 行右侧）：困难红、简单绿，让玩家一眼知道当前档位
+        Difficulty diff = controller.getDifficulty();
+        FontMetrics hfm = g2.getFontMetrics();
+        g2.setColor(diff == Difficulty.HARD
+                ? new Color(235, 90, 90)
+                : new Color(90, 200, 120));
+        g2.drawString("[" + diff.label + "]", 10 + hfm.stringWidth(hud) + 10, 20);
+
         // 血条：暗色圆角背景 + 分段色前景（绿/黄/红）
         int barX = 10, barY = 28, barW = 200, barH = 14;
         int hp = controller.getHp();

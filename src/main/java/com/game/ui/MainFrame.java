@@ -1,5 +1,6 @@
 package com.game.ui;
 
+import com.game.game.Difficulty;
 import com.game.model.User;
 import com.game.util.UIStyle;
 
@@ -61,11 +62,24 @@ public class MainFrame extends JFrame {
 
         boolean isAdmin = "admin".equals(currentUser.getRole());
 
-        // 各按钮事件（开始游戏→GameWindow；排行榜→LeaderboardFrame；设置仍为占位）
+        // 开始游戏：先弹难度选择（简单/困难），取消则不开始、留在主菜单
         startButton.addActionListener(
                 e -> {
+                    int choice = JOptionPane.showOptionDialog(
+                            this,
+                            "选择游戏难度",
+                            "难度选择",
+                            JOptionPane.DEFAULT_OPTION,
+                            JOptionPane.QUESTION_MESSAGE,
+                            null,
+                            new Object[]{"简单", "困难"},
+                            "简单");
+                    if (choice == JOptionPane.CLOSED_OPTION) {
+                        return; // 关闭对话框 = 取消，不开始
+                    }
+                    Difficulty diff = (choice == 1) ? Difficulty.HARD : Difficulty.EASY;
                     dispose();
-                    new GameWindow(currentUser).setVisible(true);
+                    new GameWindow(currentUser, diff).setVisible(true);
                 });
         rankButton.addActionListener(
                 e -> new LeaderboardFrame(currentUser).setVisible(true));

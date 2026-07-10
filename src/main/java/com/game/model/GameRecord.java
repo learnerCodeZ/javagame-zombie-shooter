@@ -13,6 +13,8 @@ public class GameRecord {
     private int score;
     private int killCount;
     private int surviveSec;
+    /** 难度（EASY/HARD，对应 {@link com.game.game.Difficulty#name()}）；默认 EASY */
+    private String difficulty = "EASY";
     private Date recordTime;
 
     /**
@@ -65,6 +67,24 @@ public class GameRecord {
         this.surviveSec = surviveSec;
     }
 
+    /**
+     * 获取难度（EASY/HARD）。
+     *
+     * @return 难度字符串，默认 "EASY"
+     */
+    public String getDifficulty() {
+        return difficulty;
+    }
+
+    /**
+     * 设置难度（存档时由 GameWindow 传入 {@code Difficulty.name()}）。
+     *
+     * @param difficulty 难度字符串
+     */
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty;
+    }
+
     public Date getRecordTime() {
         return recordTime;
     }
@@ -94,6 +114,7 @@ public class GameRecord {
     @Override
     public String toString() {
         return "GameRecord{userId=" + userId + ", score=" + score
-                + ", kill=" + killCount + ", survive=" + surviveSec + "s}";
+                + ", kill=" + killCount + ", survive=" + surviveSec + "s"
+                + ", difficulty=" + difficulty + "}";
     }
 }

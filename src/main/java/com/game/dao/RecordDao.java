@@ -22,13 +22,14 @@ public class RecordDao {
      * @return true 表示写入成功
      */
     public boolean saveRecord(GameRecord record) {
-        String sql = "INSERT INTO game_record(user_id, score, kill_count, survive_sec) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO game_record(user_id, score, kill_count, survive_sec, difficulty) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, record.getUserId());
             ps.setInt(2, record.getScore());
             ps.setInt(3, record.getKillCount());
             ps.setInt(4, record.getSurviveSec());
+            ps.setString(5, record.getDifficulty());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -37,20 +38,22 @@ public class RecordDao {
     }
 
     /**
-     * 全局排行榜：按分数倒序取前 n 名。
+     * 全局排行榜：指定难度、按分数倒序取前 n 名。
      *
-     * @param n 取前 n 条
-     * @return 排行榜列表（已按分数从高到低）
+     * @param n          取前 n 条
+     * @param difficulty 难度（EASY/HARD，传 {@code Difficulty.name()}）
+     * @return 该难度的排行榜列表（已按分数从高到低）
      */
-    public List<GameRecord> topN(int n) {
+    public List<GameRecord> topN(int n, String difficulty) {
         String sql = "SELECT g.id, g.user_id, g.score, g.kill_count, g.survive_sec, "
-                + "g.record_time, u.nickname "
+                + "g.difficulty, g.record_time, u.nickname "
                 + "FROM game_record g JOIN user u ON g.user_id = u.id "
-                + "ORDER BY g.score DESC LIMIT ?";
+                + "WHERE g.difficulty = ? ORDER BY g.score DESC LIMIT ?";
         List<GameRecord> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, n);
+            ps.setString(1, difficulty);
+            ps.setInt(2, n);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapWithUser(rs));
@@ -63,18 +66,20 @@ public class RecordDao {
     }
 
     /**
-     * 某用户自己的记录：按分数倒序。
+     * 某用户指定难度的记录：按分数倒序。
      *
-     * @param userId 用户ID
-     * @return 该用户的记录列表
+     * @param userId     用户ID
+     * @param difficulty 难度（EASY/HARD，传 {@code Difficulty.name()}）
+     * @return 该用户在该难度下的记录列表
      */
-    public List<GameRecord> mine(int userId) {
-        String sql = "SELECT id, user_id, score, kill_count, survive_sec, record_time "
-                + "FROM game_record WHERE user_id = ? ORDER BY score DESC";
+    public List<GameRecord> mine(int userId, String difficulty) {
+        String sql = "SELECT id, user_id, score, kill_count, survive_sec, difficulty, record_time "
+                + "FROM game_record WHERE user_id = ? AND difficulty = ? ORDER BY score DESC";
         List<GameRecord> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
+            ps.setString(2, difficulty);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(map(rs));
@@ -94,6 +99,7 @@ public class RecordDao {
         r.setScore(rs.getInt("score"));
         r.setKillCount(rs.getInt("kill_count"));
         r.setSurviveSec(rs.getInt("survive_sec"));
+        r.setDifficulty(rs.getString("difficulty"));
         Timestamp ts = rs.getTimestamp("record_time");
         if (ts != null) {
             r.setRecordTime(new java.util.Date(ts.getTime()));

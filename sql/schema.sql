@@ -38,10 +38,12 @@ CREATE TABLE game_record (
     score        INT      NOT NULL DEFAULT 0       COMMENT '得分',
     kill_count   INT      NOT NULL DEFAULT 0       COMMENT '击杀数',
     survive_sec  INT      NOT NULL DEFAULT 0       COMMENT '存活秒数',
+    difficulty   VARCHAR(8) NOT NULL DEFAULT 'EASY' COMMENT '难度 EASY/HARD',
     record_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录时间',
     PRIMARY KEY (id),
-    KEY idx_user  (user_id),                         -- 按用户查记录的索引
-    KEY idx_score (score),                           -- 排行榜按分数排序的索引
+    KEY idx_user       (user_id),                    -- 按用户查记录的索引
+    KEY idx_score      (score),                      -- 排行榜按分数排序的索引
+    KEY idx_diff_score (difficulty, score),          -- 按难度过滤+分数排序的复合索引
     CONSTRAINT fk_record_user FOREIGN KEY (user_id) REFERENCES user (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='游戏记录表';
 

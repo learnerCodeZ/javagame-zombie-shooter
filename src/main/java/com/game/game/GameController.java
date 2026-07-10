@@ -21,20 +21,16 @@ public class GameController {
     public static final int HEIGHT = 600;
     /** 子弹速度（像素/帧） */
     private static final double BULLET_SPEED = 8;
-    /** 僵尸生成间隔（帧，约 1.5 秒） */
-    private static final int SPAWN_INTERVAL = 90;
-    /** 难度递增后的最小刷怪间隔（帧，约 0.5 秒） */
-    private static final int MIN_SPAWN = 30;
     /** 逻辑帧率：update() 每调用一次算一帧，每 {@value} 帧折算 1 逻辑秒（暂停时不推进）。 */
     private static final int FRAMES_PER_SEC = 60;
-    /** 僵尸撞击玩家造成的伤害 */
-    private static final int HIT_DAMAGE = 20;
-    /** Brute 开始出现的存活秒数门槛 */
-    private static final int BRUTE_MIN_SEC = 10;
-    /** 每次普通刷怪替换为 Brute 的概率 */
-    private static final double BRUTE_CHANCE = 0.18;
     /** 受伤红屏持续帧数（用于换算 0~1 强度） */
     private static final int DAMAGE_FLASH_MAX = 20;
+
+    /**
+     * 当前难度档位：刷怪间隔 / 封顶 / Brute 门槛与概率 / 撞击伤害等"随难度而变"的参数
+     * 都从 {@link Difficulty} 读取，不再写死。简单 = 原始数值，困难 = 数值上调。
+     */
+    private final Difficulty difficulty;
 
     private final Player player;
     private final List<Zombie> zombies;
@@ -66,9 +62,24 @@ public class GameController {
     private boolean gameOverFired;
 
     /**
-     * 构造方法：玩家置于画布中央，计分清零，开始计时。
+     * 默认构造：按 {@link Difficulty#EASY} 开局。
+     * <p>保留无参形式以兼容 {@link com.game.TestGameLogic} 等无界面测试。
      */
     public GameController() {
+        this(Difficulty.EASY);
+    }
+
+    /**
+     * 按指定难度构造：玩家置于画布中央，计分清零，开始计时；
+     * 难度决定刷怪间隔 / 封顶 / Brute 门槛与概率 / 撞击伤害。
+     *
+     * @param difficulty 难度档位（不能为 null）
+     */
+    public GameController(Difficulty difficulty) {
+        if (difficulty == null) {
+            throw new IllegalArgumentException("难度不能为空");
+        }
+        this.difficulty = difficulty;
         this.player = new Player(WIDTH / 2.0, HEIGHT / 2.0);
         this.zombies = new ArrayList<>();
         this.bullets = new ArrayList<>();
@@ -163,9 +174,9 @@ public class GameController {
         if (damageFlashFrames > 0) {
             damageFlashFrames--;
         }
-        // 2) 按帧节奏刷怪：随存活秒数，间隔从 90 帧逐步降到 30 帧
+        // 2) 按帧节奏刷怪：随存活秒数，间隔从初始值逐步降到封顶值（具体数值由难度决定）
         frameCounter++;
-        int interval = Math.max(MIN_SPAWN, SPAWN_INTERVAL - getElapsedSec());
+        int interval = Math.max(difficulty.minSpawn, difficulty.spawnInterval - getElapsedSec());
         if (frameCounter % interval == 0) {
             spawnZombie();
         }
@@ -182,11 +193,11 @@ public class GameController {
     }
 
     /**
-     * 从四条边随机位置生成一只僵尸；存活满 {@value #BRUTE_MIN_SEC} 秒后，
-     * 有 {@value #BRUTE_CHANCE} 概率替换为更慢、更肉、得分更高的 Brute。
+     * 从四条边随机位置生成一只僵尸；存活满难度门槛（{@link Difficulty#bruteMinSec}）秒后，
+     * 以难度对应概率（{@link Difficulty#bruteChance}）替换为更慢、更肉、得分更高的 Brute。
      */
     private void spawnZombie() {
-        boolean brute = getElapsedSec() >= BRUTE_MIN_SEC && random.nextDouble() < BRUTE_CHANCE;
+        boolean brute = getElapsedSec() >= difficulty.bruteMinSec && random.nextDouble() < difficulty.bruteChance;
         double speed = brute ? (0.6 + random.nextDouble() * 0.4) : (1.0 + random.nextDouble());
         double px = player.getX();
         double py = player.getY();
@@ -254,7 +265,7 @@ public class GameController {
             double dx = z.getX() - player.getX();
             double dy = z.getY() - player.getY();
             if (Math.hypot(dx, dy) < z.getRadius() + player.getRadius()) {
-                player.takeDamage(HIT_DAMAGE);
+                player.takeDamage(difficulty.hitDamage);
                 SoundUtil.hurt();
                 z.kill();
                 spawnZombieDeath(z);
@@ -427,6 +438,11 @@ public class GameController {
 
     public boolean isRunning() {
         return running;
+    }
+
+    /** 当前难度档位（HUD 显示用）。 */
+    public Difficulty getDifficulty() {
+        return difficulty;
     }
 
     /**

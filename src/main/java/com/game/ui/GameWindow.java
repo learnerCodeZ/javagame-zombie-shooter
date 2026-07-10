@@ -1,6 +1,7 @@
 package com.game.ui;
 
 import com.game.dao.RecordDao;
+import com.game.game.Difficulty;
 import com.game.game.GameController;
 import com.game.game.GamePanel;
 import com.game.model.GameRecord;
@@ -43,6 +44,8 @@ public class GameWindow extends JFrame {
 
     /** 当前登录用户（结算写 user_id、重开后保持同一身份） */
     private final User currentUser;
+    /** 本局难度（"再来一局"重开时保持同一难度，不掉档） */
+    private final Difficulty difficulty;
     /** 游戏控制器（游戏大脑） */
     private final GameController controller;
     /** 游戏画布（内含刷新定时器） */
@@ -55,23 +58,28 @@ public class GameWindow extends JFrame {
     /**
      * 构造方法。
      *
-     * @param user 当前登录用户
+     * @param user       当前登录用户
+     * @param difficulty 本局难度（重开时由调用方原样传入，保持同一档位）
      */
-    public GameWindow(User user) {
+    public GameWindow(User user, Difficulty difficulty) {
         if (user == null) {
             throw new IllegalArgumentException("登录用户不能为空");
         }
+        if (difficulty == null) {
+            throw new IllegalArgumentException("难度不能为空");
+        }
         this.currentUser = user;
+        this.difficulty = difficulty;
 
-        setTitle("打僵尸");
+        setTitle("打僵尸 [" + difficulty.label + "]");
         setSize(820, 640);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         // 窗体内容底设为最深的 BG，与暗色主题统一（画布会完整覆盖，此处主要防边缘闪白）
         getContentPane().setBackground(UIStyle.BG);
 
-        // 创建控制器，注册游戏结束回调（血量归零 → 结算）
-        this.controller = new GameController();
+        // 创建控制器，注册游戏结束回调（血量归零 → 结算）；按本局难度注入刷怪/伤害参数
+        this.controller = new GameController(difficulty);
         this.controller.setOnGameOver(() -> SwingUtilities.invokeLater(this::settle));
 
         // 创建画布并装入窗口
@@ -106,6 +114,7 @@ public class GameWindow extends JFrame {
         record.setScore(controller.getScore());
         record.setKillCount(controller.getKillCount());
         record.setSurviveSec(controller.getElapsedSec());
+        record.setDifficulty(difficulty.name());
         try {
             new RecordDao().saveRecord(record);
         } catch (Exception ex) {
@@ -146,7 +155,7 @@ public class GameWindow extends JFrame {
         if (choice == 0) {
             // 再来一局：关闭本窗，开新一局
             dispose();
-            new GameWindow(currentUser).setVisible(true);
+            new GameWindow(currentUser, difficulty).setVisible(true);
         } else {
             // 回主菜单（用户直接关闭对话框也按"回主菜单"处理）
             dispose();
@@ -247,7 +256,7 @@ public class GameWindow extends JFrame {
                     saveCurrentRecord();
                 }
                 dispose();
-                new GameWindow(currentUser).setVisible(true);
+                new GameWindow(currentUser, difficulty).setVisible(true);
             }
         });
 
