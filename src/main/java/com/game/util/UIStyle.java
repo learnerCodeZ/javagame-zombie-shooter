@@ -14,6 +14,10 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.JTableHeader;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
+import javax.swing.text.PlainDocument;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -295,6 +299,47 @@ public final class UIStyle {
      */
     public static JTextField field() {
         return new GameField();
+    }
+
+    /**
+     * 创建手机号输入框：在 {@link #field()} 样式基础上，用 {@link DocumentFilter} 限制
+     * <b>只能输入数字、最多 11 位</b>（输满 11 位即无法继续输入，粘贴超长/非数字会被丢弃）。
+     *
+     * @return 配置好的手机号输入框（11 位纯数字）
+     */
+    public static JTextField phoneField() {
+        JTextField f = field();
+        if (f.getDocument() instanceof PlainDocument doc) {
+            doc.setDocumentFilter(new DocumentFilter() {
+                /** 插入后总长度是否 ≤ 11 且新增文本全是数字（空串放行，用于删除）。 */
+                private boolean acceptable(int curLen, int removedLen, String inserted) {
+                    if (inserted == null || inserted.isEmpty()) {
+                        return true;
+                    }
+                    if (!inserted.matches("\\d*")) {
+                        return false;
+                    }
+                    return curLen - removedLen + inserted.length() <= 11;
+                }
+
+                @Override
+                public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
+                        throws BadLocationException {
+                    if (acceptable(fb.getDocument().getLength(), 0, text)) {
+                        super.insertString(fb, offset, text, attr);
+                    }
+                }
+
+                @Override
+                public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attr)
+                        throws BadLocationException {
+                    if (acceptable(fb.getDocument().getLength(), length, text)) {
+                        super.replace(fb, offset, length, text, attr);
+                    }
+                }
+            });
+        }
+        return f;
     }
 
     /**

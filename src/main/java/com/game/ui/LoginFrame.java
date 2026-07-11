@@ -20,14 +20,14 @@ import java.awt.GridLayout;
 
 /**
  * 登录窗口。
- * 提供用户名 / 密码输入，调用 {@link UserDao#login(String, String)} 完成登录校验；
+ * 提供手机号 / 密码输入，调用 {@link UserDao#login(String, String)} 完成登录校验；
  * 登录成功后关闭本窗并打开 {@link MainFrame}，同时提供跳转到
  * {@link RegisterFrame} 的入口。
  */
 public class LoginFrame extends JFrame {
 
-    /** 用户名输入框 */
-    private final JTextField usernameField = UIStyle.field();
+    /** 手机号输入框 */
+    private final JTextField phoneField = UIStyle.phoneField();
     /** 密码输入框 */
     private final JPasswordField passwordField = UIStyle.passwordField();
     /** 登录按钮 */
@@ -61,16 +61,16 @@ public class LoginFrame extends JFrame {
         titleLabel.setHorizontalAlignment(JLabel.CENTER);
         titleLabel.setBorder(new EmptyBorder(20, 0, 14, 0));
 
-        // 中间表单：用户名 / 密码（透明面板，标签右对齐）
+        // 中间表单：手机号 / 密码（透明面板，标签右对齐）
         JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 12));
         formPanel.setOpaque(false);
         formPanel.setBorder(new EmptyBorder(10, 40, 14, 40));
-        JLabel userLabel = UIStyle.body("用户名：");
-        userLabel.setHorizontalAlignment(JLabel.RIGHT);
+        JLabel phoneLabel = UIStyle.body("手机号：");
+        phoneLabel.setHorizontalAlignment(JLabel.RIGHT);
         JLabel pwdLabel = UIStyle.body("密  码：");
         pwdLabel.setHorizontalAlignment(JLabel.RIGHT);
-        formPanel.add(userLabel);
-        formPanel.add(usernameField);
+        formPanel.add(phoneLabel);
+        formPanel.add(phoneField);
         formPanel.add(pwdLabel);
         formPanel.add(passwordField);
 
@@ -113,16 +113,21 @@ public class LoginFrame extends JFrame {
      * 登录处理：校验非空 -> 调 UserDao 登录 -> 成功进主菜单 / 失败提示并清空密码。
      */
     private void doLogin() {
-        String username = usernameField.getText().trim();
+        String phone = phoneField.getText().trim();
         String password = new String(passwordField.getPassword());
-        if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "请输入用户名和密码",
+        if (phone.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "请输入手机号和密码",
+                    "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!phone.matches("\\d{11}")) {
+            JOptionPane.showMessageDialog(this, "手机号格式不正确（应为 11 位手机号）",
                     "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
         User user;
         try {
-            user = new UserDao().login(username, password);
+            user = new UserDao().login(phone, password);
         } catch (Exception ex) {
             // 数据库连不上等异常：DBUtil 已抛 RuntimeException，这里兜底成友好提示
             ex.printStackTrace();
@@ -131,7 +136,7 @@ public class LoginFrame extends JFrame {
             return;
         }
         if (user == null) {
-            JOptionPane.showMessageDialog(this, "用户名或密码错误",
+            JOptionPane.showMessageDialog(this, "手机号或密码错误",
                     "登录失败", JOptionPane.ERROR_MESSAGE);
             passwordField.setText("");
             return;
@@ -141,38 +146,44 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * 忘记密码处理：弹框输入用户名 -> 调 ResetRequestDao.requestReset 提交申请。
-     * 用户名不存在 -> 提示"用户名不存在"；已有 pending -> 提示"已有待审核申请"；
-     * 成功提交 -> 提示"已提交，等管理员审核"。DB 异常 try/catch 友好提示。
+     * 忘记密码处理：弹框输入手机号 -> 调 ResetRequestDao.requestReset 提交申请。
+     * 手机号格式不对 -> 提示"手机号格式不正确"；手机号不存在 -> 提示"手机号不存在"；
+     * 已有 pending -> 提示"已有待审核申请"；成功提交 -> 提示"已提交，等管理员审核"。
+     * DB 异常 try/catch 友好提示。
      */
     private void doResetRequest() {
-        String username = JOptionPane.showInputDialog(this, "请输入您的用户名：",
+        String phone = JOptionPane.showInputDialog(this, "请输入您的手机号：",
                 "忘记密码", JOptionPane.QUESTION_MESSAGE);
-        if (username == null) {
+        if (phone == null) {
             // 用户点了取消
             return;
         }
-        username = username.trim();
-        if (username.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "用户名不能为空",
+        phone = phone.trim();
+        if (phone.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "手机号不能为空",
+                    "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!phone.matches("\\d{11}")) {
+            JOptionPane.showMessageDialog(this, "手机号格式不正确（应为 11 位手机号）",
                     "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
         try {
             UserDao userDao = new UserDao();
             ResetRequestDao resetDao = new ResetRequestDao();
-            // 先用 findByName 区分"用户名不存在"，再调 requestReset
-            if (!userDao.findByName(username)) {
-                JOptionPane.showMessageDialog(this, "用户名不存在",
+            // 先用 findByPhone 区分"手机号不存在"，再调 requestReset
+            if (!userDao.findByPhone(phone)) {
+                JOptionPane.showMessageDialog(this, "手机号不存在",
                         "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            boolean ok = resetDao.requestReset(username);
+            boolean ok = resetDao.requestReset(phone);
             if (ok) {
                 JOptionPane.showMessageDialog(this, "已提交，等管理员审核",
                         "提示", JOptionPane.INFORMATION_MESSAGE);
             } else {
-                // 用户名存在但返回 false，说明该用户已有 pending 申请
+                // 手机号存在但返回 false，说明该用户已有 pending 申请
                 JOptionPane.showMessageDialog(this, "已有待审核申请",
                         "提示", JOptionPane.WARNING_MESSAGE);
             }

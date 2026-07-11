@@ -22,18 +22,18 @@ public class TestDao {
         UserDao userDao = new UserDao();
         RecordDao recordDao = new RecordDao();
 
-        // 1) 注册一个新用户（用户名带随机数，方便反复测试）
-        String username = "tester_" + System.currentTimeMillis() % 100000;
+        // 1) 注册一个新用户（手机号带随机后缀，方便反复测试；138 + 8 位 = 11 位）
+        String phone = "138" + String.format("%08d", System.currentTimeMillis() % 100000000);
         User newUser = new User();
-        newUser.setUsername(username);
+        newUser.setPhone(phone);
         newUser.setPassword("123456");
         newUser.setNickname("测试玩家");
         boolean regOk = userDao.register(newUser);
-        System.out.println("【注册】" + username + " / 123456 -> "
-                + (regOk ? "成功" : "失败(可能用户名已存在)"));
+        System.out.println("【注册】" + phone + " / 123456 -> "
+                + (regOk ? "成功" : "失败(可能手机号已存在)"));
 
         // 2) 登录
-        User loginUser = userDao.login(username, "123456");
+        User loginUser = userDao.login(phone, "123456");
         System.out.println("【登录】" + (loginUser != null ? "成功 " + loginUser : "失败"));
         if (loginUser == null) {
             System.out.println("登录失败，后续步骤终止。");
@@ -68,7 +68,7 @@ public class TestDao {
         }
 
         // 6) 边界：错误密码登录应返回 null
-        User badLogin = userDao.login(username, "wrongpwd");
+        User badLogin = userDao.login(phone, "wrongpwd");
         System.out.println("【边界】错误密码登录应失败 -> "
                 + (badLogin == null ? "符合预期(null)" : "异常(竟然登录成功)"));
     }

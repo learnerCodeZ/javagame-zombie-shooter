@@ -18,16 +18,16 @@ import java.util.List;
 public class UserDao {
 
     /**
-     * 查询用户名是否已存在（注册时查重用）。
+     * 查询手机号是否已存在（注册时查重用）。
      *
-     * @param username 用户名
+     * @param phone 手机号
      * @return true 表示已存在
      */
-    public boolean findByName(String username) {
-        String sql = "SELECT COUNT(*) FROM user WHERE username = ?";
+    public boolean findByPhone(String phone) {
+        String sql = "SELECT COUNT(*) FROM user WHERE phone = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
+            ps.setString(1, phone);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1) > 0;
@@ -43,17 +43,17 @@ public class UserDao {
      * 注册：把用户写入 user 表。密码会先做 MD5。
      *
      * @param user 待注册用户（明文密码）
-     * @return true 表示注册成功；用户名已存在或出错则返回 false
+     * @return true 表示注册成功；手机号已存在或出错则返回 false
      */
     public boolean register(User user) {
-        if (findByName(user.getUsername())) {
-            System.out.println("[注册] 用户名已存在：" + user.getUsername());
+        if (findByPhone(user.getPhone())) {
+            System.out.println("[注册] 手机号已存在：" + user.getPhone());
             return false;
         }
-        String sql = "INSERT INTO user(username, password, nickname) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO user(phone, password, nickname) VALUES (?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, user.getUsername());
+            ps.setString(1, user.getPhone());
             ps.setString(2, MD5Util.md5(user.getPassword()));
             ps.setString(3, user.getNickname());
             return ps.executeUpdate() > 0;
@@ -64,24 +64,24 @@ public class UserDao {
     }
 
     /**
-     * 登录：按用户名 + 密码(先 MD5) 校验。
+     * 登录：按手机号 + 密码(先 MD5) 校验。
      *
-     * @param username 用户名
+     * @param phone    手机号
      * @param password 明文密码
      * @return 校验通过返回 User 对象；失败返回 null
      */
-    public User login(String username, String password) {
-        String sql = "SELECT id, username, password, nickname, role, create_time FROM user "
-                + "WHERE username = ? AND password = ?";
+    public User login(String phone, String password) {
+        String sql = "SELECT id, phone, password, nickname, role, create_time FROM user "
+                + "WHERE phone = ? AND password = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
+            ps.setString(1, phone);
             ps.setString(2, MD5Util.md5(password));
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     User user = new User();
                     user.setId(rs.getInt("id"));
-                    user.setUsername(rs.getString("username"));
+                    user.setPhone(rs.getString("phone"));
                     user.setPassword(rs.getString("password"));
                     user.setNickname(rs.getString("nickname"));
                     user.setRole(rs.getString("role"));
@@ -127,7 +127,7 @@ public class UserDao {
      * @return 全部用户列表；出错返回空列表
      */
     public List<User> listAllUsers() {
-        String sql = "SELECT id, username, password, nickname, role, create_time FROM user ORDER BY id";
+        String sql = "SELECT id, phone, password, nickname, role, create_time FROM user ORDER BY id";
         List<User> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -222,7 +222,7 @@ public class UserDao {
     private User map(ResultSet rs) throws SQLException {
         User user = new User();
         user.setId(rs.getInt("id"));
-        user.setUsername(rs.getString("username"));
+        user.setPhone(rs.getString("phone"));
         user.setPassword(rs.getString("password"));
         user.setNickname(rs.getString("nickname"));
         user.setRole(rs.getString("role"));

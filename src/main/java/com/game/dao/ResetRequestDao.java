@@ -23,19 +23,19 @@ import java.util.List;
 public class ResetRequestDao {
 
     /**
-     * 提交重置申请：查 userId；用户名不存在返回 false；
+     * 提交重置申请：查 userId；手机号不存在返回 false；
      * 已有 pending 申请则不重复插入返回 false；否则插入一条 pending 记录返回 true。
      *
-     * @param username 申请人用户名
-     * @return true 表示已成功提交；用户名不存在 / 已有待审 / 出错则返回 false
+     * @param phone 申请人手机号
+     * @return true 表示已成功提交；手机号不存在 / 已有待审 / 出错则返回 false
      */
-    public boolean requestReset(String username) {
+    public boolean requestReset(String phone) {
         try (Connection conn = DBUtil.getConnection()) {
             // 1) 查 userId
             Integer userId = null;
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT id FROM user WHERE username = ?")) {
-                ps.setString(1, username);
+                    "SELECT id FROM user WHERE phone = ?")) {
+                ps.setString(1, phone);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         userId = rs.getInt("id");
@@ -86,13 +86,13 @@ public class ResetRequestDao {
     }
 
     /**
-     * 列出全部待审核申请，JOIN user 带上 username / nickname，按申请时间升序。
+     * 列出全部待审核申请，JOIN user 带上 phone / nickname，按申请时间升序。
      *
      * @return 待审核申请列表；出错返回空列表
      */
     public List<PasswordResetRequest> listPending() {
         String sql = "SELECT r.id, r.user_id, r.status, r.request_time, r.handle_time, "
-                + "u.username, u.nickname "
+                + "u.phone, u.nickname "
                 + "FROM password_reset_request r JOIN user u ON r.user_id = u.id "
                 + "WHERE r.status = 'pending' ORDER BY r.request_time";
         List<PasswordResetRequest> list = new ArrayList<>();
@@ -178,7 +178,7 @@ public class ResetRequestDao {
         }
     }
 
-    // 把结果集当前行映射成 PasswordResetRequest（含 JOIN 来的 username / nickname）
+    // 把结果集当前行映射成 PasswordResetRequest（含 JOIN 来的 phone / nickname）
     private PasswordResetRequest map(ResultSet rs) throws SQLException {
         PasswordResetRequest r = new PasswordResetRequest();
         r.setId(rs.getInt("id"));
@@ -192,7 +192,7 @@ public class ResetRequestDao {
         if (handle != null) {
             r.setHandleTime(new Date(handle.getTime()));
         }
-        r.setUsername(rs.getString("username"));
+        r.setPhone(rs.getString("phone"));
         r.setNickname(rs.getString("nickname"));
         return r;
     }

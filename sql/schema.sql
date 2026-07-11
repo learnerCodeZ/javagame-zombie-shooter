@@ -3,7 +3,7 @@
 -- 数据库 : MySQL 8.0
 -- 字符集 : utf8mb4（支持中文）
 -- 特点   : 可重复执行（带 DROP IF EXISTS，反复跑不会报错）
--- 日期   : 2026-07-09
+-- 日期   : 2026-07-09（v1.3 起登录标识改为 11 位手机号 phone）
 -- ============================================================
 
 -- 1. 建库（如果不存在才建）
@@ -22,13 +22,13 @@ DROP TABLE IF EXISTS user;
 -- 4. 用户表
 CREATE TABLE user (
     id          INT          NOT NULL AUTO_INCREMENT  COMMENT '用户ID',
-    username    VARCHAR(50)  NOT NULL                 COMMENT '登录用户名',
+    phone       VARCHAR(11)  NOT NULL                 COMMENT '登录手机号(11位)',
     password    VARCHAR(64)  NOT NULL                 COMMENT '密码（MD5 加密后存）',
     nickname    VARCHAR(50)           DEFAULT NULL    COMMENT '昵称',
     role        VARCHAR(10)  NOT NULL DEFAULT 'user'  COMMENT '角色 admin/user',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_username (username)                 -- 用户名唯一，不能重复
+    UNIQUE KEY uk_phone (phone)                       -- 手机号唯一，不能重复
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- 5.1 游戏记录表（外键关联 user）
@@ -62,10 +62,11 @@ CREATE TABLE password_reset_request (
 
 -- 6. 测试数据
 --    密码统一是 123456，MD5('123456') = e10adc3949ba59abbe56e057f20f883e
-INSERT INTO user (username, password, nickname, role) VALUES
-    ('admin',   'e10adc3949ba59abbe56e057f20f883e', '管理员', 'admin'),
-    ('player1', 'e10adc3949ba59abbe56e057f20f883e', '张三',   'user'),
-    ('player2', 'e10adc3949ba59abbe56e057f20f883e', '李四',   'user');
+--    手机号：admin=00000000000、player1=13800000001、player2=13800000002
+INSERT INTO user (phone, password, nickname, role) VALUES
+    ('00000000000', 'e10adc3949ba59abbe56e057f20f883e', '管理员', 'admin'),
+    ('13800000001', 'e10adc3949ba59abbe56e057f20f883e', '张三',   'user'),
+    ('13800000002', 'e10adc3949ba59abbe56e057f20f883e', '李四',   'user');
 
 INSERT INTO game_record (user_id, score, kill_count, survive_sec) VALUES
     (1, 320, 32, 210),

@@ -136,7 +136,7 @@ public class LeaderboardFrame extends JFrame {
             list = dao.mine(currentUser.getId(), currentDifficulty.name());
             mineNick = currentUser.getNickname();
             if (mineNick == null || mineNick.isEmpty()) {
-                mineNick = currentUser.getUsername();
+                mineNick = currentUser.getPhone();
             }
         } else {
             list = dao.topN(50, currentDifficulty.name());

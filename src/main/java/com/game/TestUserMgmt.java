@@ -33,22 +33,23 @@ public class TestUserMgmt {
         ResetRequestDao resetDao = new ResetRequestDao();
         // 临时用户 id，用于最后清理
         Integer userId = null;
-        String username = "tmp_" + (System.currentTimeMillis() % 1000000);
+        // 临时手机号：138 + 8 位随机后缀 = 11 位
+        String phone = "138" + String.format("%08d", System.currentTimeMillis() % 100000000);
 
         try {
             System.out.println("===== 用户管理与账号安全 测试开始 =====");
-            System.out.println("临时用户名：" + username);
+            System.out.println("临时手机号：" + phone);
 
             // ---------- a) 注册 -> 登录 -> role=user ----------
             User regUser = new User();
-            regUser.setUsername(username);
+            regUser.setPhone(phone);
             regUser.setPassword("123456");
             regUser.setNickname("临时测试");
             boolean regOk = userDao.register(regUser);
             System.out.println("[a1] register -> " + regOk);
             check("a) register 临时用户成功", regOk);
 
-            User loginUser = userDao.login(username, "123456");
+            User loginUser = userDao.login(phone, "123456");
             String loginRole = (loginUser == null) ? null : loginUser.getRole();
             System.out.println("[a2] login -> " + loginUser + " role=" + loginRole);
             check("a) login 返回用户且 role=user",
@@ -62,15 +63,15 @@ public class TestUserMgmt {
             System.out.println("[b1] changePassword(123456 -> newpwd) -> " + b1);
             check("b) changePassword 返回 true", b1);
 
-            User loginNew = (userId == null) ? null : userDao.login(username, "newpwd");
-            User loginOld = (userId == null) ? null : userDao.login(username, "123456");
+            User loginNew = (userId == null) ? null : userDao.login(phone, "newpwd");
+            User loginOld = (userId == null) ? null : userDao.login(phone, "123456");
             System.out.println("[b2] login(newpwd) -> " + (loginNew != null)
                     + " ; login(123456) -> " + (loginOld != null));
             check("b) 用新密码 newpwd 能登录", loginNew != null);
             check("b) 用旧密码 123456 不能登录", loginOld == null);
 
             // ---------- c) requestReset / hasPending / listPending / 去重 ----------
-            boolean c1 = resetDao.requestReset(username);
+            boolean c1 = resetDao.requestReset(phone);
             System.out.println("[c1] requestReset -> " + c1);
             check("c) requestReset 返回 true", c1);
 
@@ -82,7 +83,7 @@ public class TestUserMgmt {
             System.out.println("[c3] 该用户 pending 数量 -> " + count1);
             check("c) listPending 含该用户(数量==1)", count1 == 1);
 
-            boolean c4 = resetDao.requestReset(username);
+            boolean c4 = resetDao.requestReset(phone);
             int count2 = countPendingFor(resetDao, userId);
             System.out.println("[c4] 再次 requestReset -> " + c4 + " ; pending 数量 -> " + count2);
             check("c) 重复申请不新增(hasPending 仍 1)", count2 == 1);
@@ -96,7 +97,7 @@ public class TestUserMgmt {
             System.out.println("[d1] approve -> " + d1);
             check("d) approve 返回 true", d1);
 
-            User loginReset = (userId == null) ? null : userDao.login(username, "123456");
+            User loginReset = (userId == null) ? null : userDao.login(phone, "123456");
             System.out.println("[d2] login(123456 重置后) -> " + (loginReset != null));
             check("d) 用 123456 能登录(密码已重置)", loginReset != null);
 

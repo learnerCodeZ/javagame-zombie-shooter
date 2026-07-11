@@ -35,7 +35,7 @@ public class MainFrame extends JFrame {
         }
         this.currentUser = user;
         String displayName = (currentUser.getNickname() == null || currentUser.getNickname().isEmpty())
-                ? currentUser.getUsername() : currentUser.getNickname();
+                ? currentUser.getPhone() : currentUser.getNickname();
         setTitle("主菜单 - " + displayName);
         setSize(480, 420);
         setLocationRelativeTo(null);

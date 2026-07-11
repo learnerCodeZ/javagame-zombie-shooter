@@ -6,7 +6,7 @@ import java.util.Date;
  * 密码重置申请实体（对应数据库 password_reset_request 表）。
  * 纯 POJO：私有字段 + getter/setter。
  *
- * 注意：username / nickname 两个仅显示用字段，由 ResetRequestDao.listPending()
+ * 注意：phone / nickname 两个仅显示用字段，由 ResetRequestDao.listPending()
  * 通过 JOIN user 表填充，**不是 password_reset_request 表的真实列**。
  */
 public class PasswordResetRequest {
@@ -19,9 +19,9 @@ public class PasswordResetRequest {
     private Date handleTime;
 
     /**
-     * 申请人用户名（仅显示用，非表列，由 JOIN user 填充）。
+     * 申请人手机号（仅显示用，非表列，由 JOIN user 填充）。
      */
-    private String username;
+    private String phone;
     /**
      * 申请人昵称（仅显示用，非表列，由 JOIN user 填充）。
      */
@@ -71,21 +71,21 @@ public class PasswordResetRequest {
     }
 
     /**
-     * 获取申请人用户名（仅显示用，非数据库列）。
+     * 获取申请人手机号（仅显示用，非数据库列）。
      *
-     * @return 用户名，未 JOIN 时可能为 null
+     * @return 手机号，未 JOIN 时可能为 null
      */
-    public String getUsername() {
-        return username;
+    public String getPhone() {
+        return phone;
     }
 
     /**
-     * 设置申请人用户名（仅显示用，由 JOIN user 填充）。
+     * 设置申请人手机号（仅显示用，由 JOIN user 填充）。
      *
-     * @param username 用户名
+     * @param phone 手机号
      */
-    public void setUsername(String username) {
-        this.username = username;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     /**
@@ -109,7 +109,7 @@ public class PasswordResetRequest {
     @Override
     public String toString() {
         return "PasswordResetRequest{id=" + id + ", userId=" + userId
-                + ", username='" + username + "', nickname='" + nickname
+                + ", phone='" + phone + "', nickname='" + nickname
                 + "', status='" + status + "', requestTime=" + requestTime + "}";
     }
 }

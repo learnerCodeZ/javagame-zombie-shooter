@@ -22,8 +22,8 @@ import java.util.List;
 
 /**
  * 管理员用户管理窗口（仅 admin 进入）。
- * 上方 JTable 列出所有用户(id / 用户名 / 昵称 / 角色 / 注册时间)；
- * 中间 JTable 列出待审核重置申请(用户名 / 昵称 / 申请时间)；
+ * 上方 JTable 列出所有用户(id / 手机号 / 昵称 / 角色 / 注册时间)；
+ * 中间 JTable 列出待审核重置申请(手机号 / 昵称 / 申请时间)；
  * 按钮：通过 / 拒绝 / 删除用户 / 刷新 / 返回。操作后刷新对应表格。
  *
  * 说明：本窗 dispose 后只是关闭管理窗，调用方的 MainFrame 仍保持开着。
@@ -41,7 +41,7 @@ public class AdminFrame extends JFrame {
 
     /** 用户表模型（不可编辑） */
     private final DefaultTableModel userModel = new DefaultTableModel(
-            new Object[][]{}, new Object[]{"ID", "用户名", "昵称", "角色", "注册时间"}) {
+            new Object[][]{}, new Object[]{"ID", "手机号", "昵称", "角色", "注册时间"}) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -49,7 +49,7 @@ public class AdminFrame extends JFrame {
     };
     /** 申请表模型（不可编辑） */
     private final DefaultTableModel requestModel = new DefaultTableModel(
-            new Object[][]{}, new Object[]{"用户名", "昵称", "申请时间"}) {
+            new Object[][]{}, new Object[]{"手机号", "昵称", "申请时间"}) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -75,7 +75,9 @@ public class AdminFrame extends JFrame {
             throw new IllegalArgumentException("登录用户不能为空");
         }
         this.currentUser = user;
-        setTitle("用户管理 - " + currentUser.getUsername());
+        String displayName = (currentUser.getNickname() == null || currentUser.getNickname().isEmpty())
+                ? currentUser.getPhone() : currentUser.getNickname();
+        setTitle("用户管理 - " + displayName);
         setSize(720, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -156,7 +158,7 @@ public class AdminFrame extends JFrame {
         for (User u : users) {
             userModel.addRow(new Object[]{
                     u.getId(),
-                    u.getUsername(),
+                    u.getPhone(),
                     u.getNickname(),
                     u.getRole(),
                     u.getCreateTime() == null ? "" : DATE_FMT.format(u.getCreateTime())
@@ -179,7 +181,7 @@ public class AdminFrame extends JFrame {
         }
         for (PasswordResetRequest r : pending) {
             requestModel.addRow(new Object[]{
-                    r.getUsername(),
+                    r.getPhone(),
                     r.getNickname(),
                     r.getRequestTime() == null ? "" : DATE_FMT.format(r.getRequestTime())
             });
@@ -207,7 +209,7 @@ public class AdminFrame extends JFrame {
         }
         if (ok) {
             JOptionPane.showMessageDialog(this,
-                    "已通过，" + req.getUsername() + " 的密码已重置为 123456",
+                    "已通过，" + req.getPhone() + " 的密码已重置为 123456",
                     "提示", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this,
@@ -258,7 +260,7 @@ public class AdminFrame extends JFrame {
         }
         // 二次确认
         int choice = JOptionPane.showConfirmDialog(this,
-                "确认删除用户 " + u.getUsername() + " ？\n（将一并删除其游戏记录与重置申请）",
+                "确认删除用户 " + u.getPhone() + " ？\n（将一并删除其游戏记录与重置申请）",
                 "确认删除", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION) {
             return;
@@ -279,7 +281,7 @@ public class AdminFrame extends JFrame {
             return;
         }
         if (ok) {
-            JOptionPane.showMessageDialog(this, "已删除用户 " + u.getUsername(),
+            JOptionPane.showMessageDialog(this, "已删除用户 " + u.getPhone(),
                     "提示", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this, "删除失败（可能该用户不可删）",

@@ -9,7 +9,8 @@ import java.util.Date;
 public class User {
 
     private int id;
-    private String username;
+    /** 登录手机号（11 位），全局唯一 */
+    private String phone;
     private String password;
     private String nickname;
     /** 角色：admin（管理员）/ user（普通用户），默认 user */
@@ -27,12 +28,12 @@ public class User {
         this.id = id;
     }
 
-    public String getUsername() {
-        return username;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getPassword() {
@@ -79,7 +80,7 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{id=" + id + ", username='" + username + "', nickname='" + nickname
+        return "User{id=" + id + ", phone='" + phone + "', nickname='" + nickname
                 + "', role=" + role + "}";
     }
 }
