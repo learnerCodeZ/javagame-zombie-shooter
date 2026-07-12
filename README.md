@@ -15,6 +15,7 @@
 ## 目录
 
 - [简介](#简介)
+- [📸 界面预览](#-界面预览)
 - [✨ 功能特性](#-功能特性)
 - [🛠 技术栈](#-技术栈)
 - [📁 项目结构](#-项目结构)
@@ -35,6 +36,20 @@
 本项目由一张 Scratch 卡通射击游戏截图（橙色猫持枪打绿色僵尸）启发，用 **Java** 重写并扩展为一个带账号体系的完整桌面游戏：玩家登录后进入主菜单，开始游戏时用鼠标瞄准并射击不断涌来的僵尸，击杀得分、被撞扣血；游戏结束后战绩写入 **MySQL**，可在排行榜查看。
 
 整个项目按软件工程流程分阶段推进：**需求分析 → 系统设计 → 数据层 → 界面层 → 游戏核心 → 排行榜 → 打磨 → 测试**，每阶段产出可独立验收的文档与代码。
+
+## 📸 界面预览
+
+按玩家体验流程（账号 → 菜单与管理 → 游戏 → 排行榜）：
+
+|  |  |
+|---|---|
+| <img src="images/01-login.png" width="380"><br>**01 登录**（手机号） | <img src="images/02-register.png" width="380"><br>**02 注册** |
+| <img src="images/03-forgot-password.png" width="380"><br>**03 忘记密码**（输手机号申请重置） | <img src="images/04-menu-admin.png" width="380"><br>**04 主菜单**（管理员，多「用户管理」） |
+| <img src="images/05-help.png" width="380"><br>**05 游戏说明** | <img src="images/06-admin-users.png" width="380"><br>**06 用户管理**（admin 审核/删除） |
+| <img src="images/07-change-password.png" width="380"><br>**07 修改密码** | <img src="images/08-leaderboard-easy.png" width="380"><br>**08 排行榜·简单榜** |
+| <img src="images/09-leaderboard-mine.png" width="380"><br>**09 排行榜·我的记录** | <img src="images/10-difficulty-select.png" width="380"><br>**10 难度选择**（简单/困难） |
+| <img src="images/11-gameplay-start.png" width="380"><br>**11 游戏中·开局** | <img src="images/12-gameplay-kill.png" width="380"><br>**12 游戏中·击杀 +10** |
+| <img src="images/13-gameplay-damaged.png" width="380"><br>**13 游戏中·受伤** | <img src="images/14-gameover.png" width="380"><br>**14 本局结算** |
 
 ## ✨ 功能特性
 
