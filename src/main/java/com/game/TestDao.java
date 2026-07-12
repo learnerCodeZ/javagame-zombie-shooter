@@ -63,7 +63,7 @@ public class TestDao {
 
         // 5) 我的记录
         System.out.println("【我的记录】");
-        for (GameRecord r : recordDao.mine(loginUser.getId(), "EASY")) {
+        for (GameRecord r : recordDao.mine(loginUser.getId())) {
             System.out.println("  " + r);
         }
 

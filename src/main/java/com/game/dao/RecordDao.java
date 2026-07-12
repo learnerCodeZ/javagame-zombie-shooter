@@ -66,20 +66,18 @@ public class RecordDao {
     }
 
     /**
-     * 某用户指定难度的记录：按分数倒序。
+     * 某用户的全部记录：不分难度、按时间倒序(最近发生的在最前)，含难度字段(供界面标注)。
      *
-     * @param userId     用户ID
-     * @param difficulty 难度（EASY/HARD，传 {@code Difficulty.name()}）
-     * @return 该用户在该难度下的记录列表
+     * @param userId 用户ID
+     * @return 该用户所有难度的记录列表(最近的排最前)
      */
-    public List<GameRecord> mine(int userId, String difficulty) {
+    public List<GameRecord> mine(int userId) {
         String sql = "SELECT id, user_id, score, kill_count, survive_sec, difficulty, record_time "
-                + "FROM game_record WHERE user_id = ? AND difficulty = ? ORDER BY score DESC";
+                + "FROM game_record WHERE user_id = ? ORDER BY record_time DESC";
         List<GameRecord> list = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
-            ps.setString(2, difficulty);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(map(rs));

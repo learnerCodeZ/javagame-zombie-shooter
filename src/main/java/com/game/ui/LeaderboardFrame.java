@@ -68,7 +68,7 @@ public class LeaderboardFrame extends JFrame {
         getContentPane().setBackground(UIStyle.BG);
 
         // 列名常量;表格只读:重写 isCellEditable 永远返回 false
-        String[] columns = {"排名", "昵称", "分数", "击杀", "存活(秒)", "时间"};
+        String[] columns = {"排名", "昵称", "分数", "难度", "击杀", "存活(秒)", "时间"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -128,10 +128,10 @@ public class LeaderboardFrame extends JFrame {
     private void reload() {
         RecordDao dao = new RecordDao();
         List<GameRecord> list;
-        // 「我的记录」昵称统一用当前用户的昵称;难度榜(全部玩家)用 JOIN 得到的每条昵称
+        // 「我的记录」= 该用户全部战绩(不分难度、按时间倒序);难度榜(全部玩家)= 按难度过滤
         String mineNick = null;
         if (mineMode) {
-            list = dao.mine(currentUser.getId(), currentDifficulty.name());
+            list = dao.mine(currentUser.getId());
             mineNick = currentUser.getNickname();
             if (mineNick == null || mineNick.isEmpty()) {
                 mineNick = currentUser.getPhone();
@@ -147,6 +147,7 @@ public class LeaderboardFrame extends JFrame {
                     rank++,
                     nick,
                     r.getScore(),
+                    diffLabel(r.getDifficulty()),
                     r.getKillCount(),
                     r.getSurviveSec(),
                     formatTime(r.getRecordTime())
@@ -159,8 +160,11 @@ public class LeaderboardFrame extends JFrame {
      * 更新顶部视图标签:文字「当前:难度榜」(+「 · 我的记录」),颜色随难度(简单绿 / 困难红)。
      */
     private void updateViewLabel() {
-        String suffix = mineMode ? " · 我的记录" : "";
-        viewLabel.setText("当前:" + currentDifficulty.label + "榜" + suffix);
+        if (mineMode) {
+            viewLabel.setText("当前:我的记录(全部 · 按时间倒序)");
+        } else {
+            viewLabel.setText("当前:" + currentDifficulty.label + "榜");
+        }
         viewLabel.setForeground(currentDifficulty == Difficulty.HARD
                 ? new Color(235, 90, 90)
                 : new Color(90, 200, 120));
@@ -171,6 +175,18 @@ public class LeaderboardFrame extends JFrame {
      */
     private void clearRows() {
         tableModel.setRowCount(0);
+    }
+
+    /** 把数据库难度串(EASY/HARD)转中文标签(简单/困难);空或未知则原样/空串返回。 */
+    private String diffLabel(String difficulty) {
+        if (difficulty == null || difficulty.isEmpty()) {
+            return "";
+        }
+        try {
+            return Difficulty.valueOf(difficulty).label;
+        } catch (IllegalArgumentException e) {
+            return difficulty;
+        }
     }
 
     /**
