@@ -47,7 +47,7 @@
 | <img src="images/03-forgot-password.png" width="380"><br>**03 忘记密码**（输手机号申请重置） | <img src="images/04-menu-admin.png" width="380"><br>**04 主菜单**（管理员，多「用户管理」） |
 | <img src="images/05-help.png" width="380"><br>**05 游戏说明** | <img src="images/06-admin-users.png" width="380"><br>**06 用户管理**（admin 审核/删除） |
 | <img src="images/07-change-password.png" width="380"><br>**07 修改密码** | <img src="images/08-leaderboard-easy.png" width="380"><br>**08 排行榜·简单榜** |
-| <img src="images/09-leaderboard-mine.png" width="380"><br>**09 排行榜·我的记录** | <img src="images/10-difficulty-select.png" width="380"><br>**10 难度选择**（简单/困难） |
+| <img src="images/09-leaderboard-mine.png" width="380"><br>**09 排行榜·我的记录**（全部·按时间·含难度） | <img src="images/10-difficulty-select.png" width="380"><br>**10 难度选择**（简单/困难） |
 | <img src="images/11-gameplay-start.png" width="380"><br>**11 游戏中·开局** | <img src="images/12-gameplay-kill.png" width="380"><br>**12 游戏中·击杀 +10** |
 | <img src="images/13-gameplay-damaged.png" width="380"><br>**13 游戏中·受伤** | <img src="images/14-gameover.png" width="380"><br>**14 本局结算** |
 
