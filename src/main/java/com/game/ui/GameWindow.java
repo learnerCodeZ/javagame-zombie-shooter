@@ -74,6 +74,7 @@ public class GameWindow extends JFrame {
         setTitle("打僵尸 [" + difficulty.label + "]");
         setSize(820, 640);
         setLocationRelativeTo(null);
+        setResizable(false); // 锁窗口尺寸:画布固定 800×600,防拉大后世界尺寸不匹配
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE); // X 由 windowClosing 手动确认后 dispose，避免静默丢局
         // 窗体内容底设为最深的 BG，与暗色主题统一（画布会完整覆盖，此处主要防边缘闪白）
         getContentPane().setBackground(UIStyle.BG);

@@ -5,20 +5,25 @@ import com.game.util.UIStyle;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import javax.swing.SwingUtilities;
+import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.RadialGradientPaint;
 import java.awt.RenderingHints;
+import java.awt.Robot;
+import java.awt.Window;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,6 +35,9 @@ public class GamePanel extends JPanel {
 
     private final GameController controller;
     private final Timer timer;
+
+    /** 用于把鼠标"锁"在画布内(游戏运行中,鼠标移出即拉回中心);拿不到 Robot 时降级为不锁。 */
+    private Robot robot;
 
     /** 右上角"设置"按钮：宽 / 高 / 距顶（横坐标按画布实际宽度动态贴右） */
     private static final int EXIT_W = 84;
@@ -54,6 +62,20 @@ public class GamePanel extends JPanel {
         this.controller = c;
         setPreferredSize(new Dimension(800, 600));
         setFocusable(true);
+        // 鼠标锁定:懒加载 Robot(个别环境拿不到则降级——不锁,但不影响游戏)
+        try {
+            robot = new Robot();
+        } catch (AWTException e) {
+            robot = null;
+        }
+        // 隐藏系统光标:画布上只显示自绘准星(失败则保留默认光标)
+        try {
+            setCursor(getToolkit().createCustomCursor(
+                    new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
+                    new Point(0, 0), "blank"));
+        } catch (Exception e) {
+            // 个别平台不支持自定义光标,忽略
+        }
         // 鼠标移动/拖拽 → 更新瞄准角度并记录准星位置
         addMouseMotionListener(new MouseAdapter() {
             @Override
@@ -81,6 +103,11 @@ public class GamePanel extends JPanel {
                     return;
                 }
                 controller.shoot();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                grabMouseBack(e);
             }
         });
         // 键盘 WASD / 方向键 → 记录按下状态，每帧由 tick() 合成移动方向
@@ -127,6 +154,29 @@ public class GamePanel extends JPanel {
     /** 停止游戏循环。 */
     public void stop() {
         timer.stop();
+    }
+
+    /**
+     * 游戏运行中,把滑出画布的鼠标推回"出界点内侧"几像素,防止点到别处。
+     * <p>比"瞬移到中心"更柔和——保留玩家原本的瞄准方向,只在边界处轻微反弹。
+     * <p>仅当:游戏循环在跑(timer 运行中)<b>且</b>本窗口处于活动态(用户没切到别的程序)时才推回；
+     * 暂停(设置菜单)/本局结束/切到别的窗口时自动放开,不困住鼠标。
+     */
+    private void grabMouseBack(MouseEvent e) {
+        if (robot == null || !timer.isRunning()) {
+            return;
+        }
+        Window win = SwingUtilities.getWindowAncestor(this);
+        if (win == null || !win.isActive()) {
+            return; // 用户切到别的窗口:别抢鼠标
+        }
+        // 推回出界点内侧 margin 像素:把出界坐标钳进画布、离边 margin,保留瞄准方向
+        final int margin = 8;
+        int cx = Math.max(margin, Math.min(getWidth() - margin, e.getX()));
+        int cy = Math.max(margin, Math.min(getHeight() - margin, e.getY()));
+        Point p = new Point(cx, cy);
+        SwingUtilities.convertPointToScreen(p, this);
+        robot.mouseMove(p.x, p.y);
     }
 
     /** 合成横向移动分量：右(+1) - 左(-1)，方向键与 WASD 等价。 */
