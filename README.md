@@ -8,7 +8,7 @@
 ![Maven](https://img.shields.io/badge/Maven-build-C71A36)
 ![GUI](https://img.shields.io/badge/GUI-Swing-6DB33F)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
-![Status](https://img.shields.io/badge/进度-阶段⑥完成-brightgreen)
+![Status](https://img.shields.io/badge/进度-功能完成-brightgreen)
 
 ---
 
@@ -45,7 +45,7 @@
 - 🔊 **音效与设置**：代码合成音效(射击/命中/受伤/结束)；局内"设置"菜单可暂停/音量/静音/再来一局/回主菜单
 - 🗄️ **数据持久化**：MySQL 存用户与战绩，JDBC + PreparedStatement（防注入）
 - 🏆 **排行榜**：简单榜 / 困难榜（按分数倒序），可叠加「我的记录」只看自己
-- 🎨 **Swing 桌面 GUI**：系统原生外观、卡片式登录窗
+- 🎨 **Swing 桌面 GUI**：跨平台暗色游戏风主题（Metal L&F + UIManager 统一覆盖）、卡片式登录窗
 
 ## 🛠 技术栈
 
@@ -83,12 +83,12 @@ Game/
 └── src/main/
     ├── java/com/game/
     │   ├── GameApp.java            # 程序入口
-    │   ├── TestDao.java            # 数据层验收测试
-    │   ├── ui/                     # 界面层：LoginFrame / RegisterFrame / MainFrame
-    │   ├── game/                   # 游戏层：Player/Zombie/Bullet/GamePanel/GameController
-    │   ├── model/                  # 实体：User / GameRecord
-    │   ├── dao/                    # 数据访问：DBUtil / UserDao / RecordDao
-    │   └── util/                   # 工具：MD5Util
+    │   ├── TestDao/TestGameLogic/TestUserMgmt   # 三份验收测试(各带 main,手动跑)
+    │   ├── ui/                     # 界面层：LoginFrame/RegisterFrame/MainFrame/GameWindow/LeaderboardFrame/AdminFrame/ChangePasswordDialog
+    │   ├── game/                   # 游戏层：GameObject(接口)/Player/Zombie/Bullet/Particle/FloatingText/Difficulty/GamePanel/GameController
+    │   ├── model/                  # 实体：User/GameRecord/PasswordResetRequest
+    │   ├── dao/                    # 数据访问：DBUtil/UserDao/RecordDao/ResetRequestDao
+    │   └── util/                   # 工具：MD5Util/GameSettings/UIStyle/SoundUtil
     └── resources/
         └── db.properties           # 数据库连接配置
 ```
@@ -139,17 +139,17 @@ password=你的密码
 mysql --default-character-set=utf8mb4 -uroot -p < sql/schema.sql
 ```
 
-两表关系：`user` **1 — N** `game_record`（外键 `user_id`）。详见 [数据库设计文档](docs/数据库设计文档.md)。
+三张表、两个一对多关系：`user` **1 — N** `game_record`、`user` **1 — N** `password_reset_request`（外键均为 `user_id`）。详见 [数据库设计文档](docs/数据库设计文档.md)。
 
 ## 🎮 使用说明
 
 启动后用以下任一测试账号登录（密码均为 `123456`）：
 
-| 用户名 | 昵称 |
+| 手机号 | 昵称 |
 |---|---|
-| `admin` | 管理员 |
-| `player1` | 张三 |
-| `player2` | 李四 |
+| `00000000000` | 管理员（admin） |
+| `13800000001` | 张三 |
+| `13800000002` | 李四 |
 
 也可点「去注册」自行创建账号。
 
@@ -186,8 +186,10 @@ mvn package              # 打包
 | ④ 游戏核心 | 玩家/僵尸/子弹/主循环/碰撞/计分/结算/局内退出 | ✅ 完成 |
 | ⑤ 排行榜 | LeaderboardFrame + JOIN 取昵称 | ✅ 完成 |
 | ⑥ 打磨 | 玩法/视觉/打击感/音效/设置菜单(6a+6b) | ✅ 完成 |
-| ⑦ 测试与文档 | 自测、补文档、正式图 | ⏳ 待开始 |
-| ⑧ 答辩准备 | 演示、讲解、PPT | ⏳ 待开始 |
+| 扩展 | 账号安全(RBAC)/难度系统/手机号登录/鼠标锁定/排行榜精简 | ✅ 完成 |
+| 审计修复 | 全项目审计①②③ + 音效修复(共 4 篇复盘) | ✅ 完成 |
+| ⑦ 测试与文档 | 自测类、设计文档、技能训练一报告 | ✅ 完成 |
+| ⑧ 答辩准备 | 总纲/代码精读/演示脚本 | 🔄 进行中 |
 
 ## 📚 文档
 
