@@ -37,20 +37,20 @@ public class FloatingText {
 
     /** 每帧上移并递减寿命。 */
     public void update() {
-        y -= 0.8;
-        life--;
+        y -= 0.8;// 每帧上移 0.8 像素(固定速度,无阻尼)
+        life--; // 寿命 -1
     }
 
     /** 绘制：按剩余寿命比例淡出。 */
     public void draw(Graphics2D g) {
-        float ratio = Math.max(0f, life / (float) maxLife);
-        int alpha = (int) (ratio * 255);
+        float ratio = Math.max(0f, life / (float) maxLife);// 剩余比例 1.0→0
+        int alpha = (int) (ratio * 255); // 透明度 = 比例×255
         if (alpha <= 0) {
-            return;
+            return;// 完全透明就不画
         }
         g.setFont(new Font("微软雅黑", Font.BOLD, 16));
-        g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));
-        g.drawString(text, (int) x, (int) y);
+        g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));//Color
+        g.drawString(text, (int) x, (int) y); // 画文字
     }
 
     /** 寿命是否已尽。 */

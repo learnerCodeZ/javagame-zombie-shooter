@@ -52,16 +52,16 @@ public class Particle {
 
     /** 绘制：按剩余寿命比例淡出并缩小。 */
     public void draw(Graphics2D g) {
-        float ratio = Math.max(0f, life / (float) maxLife);
-        int alpha = (int) (ratio * 255);
-        if (alpha <= 0) {
+        float ratio = Math.max(0f, life / (float) maxLife);// ① 剩余寿命比例 1.0→0
+        int alpha = (int) (ratio * 255);         // ② 透明度 = 比例 ×255
+        if (alpha <= 0) {                        // ③ 完全透明就不画 
             return;
         }
-        g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));
-        int s = Math.max(1, (int) (size * ratio));
+        g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));// ④ 带 alpha 的颜色
+        int s = Math.max(1, (int) (size * ratio)); // ⑤ 大小也按比例缩(最小 1)
         int ix = (int) x;
         int iy = (int) y;
-        g.fillOval(ix - s, iy - s, s * 2, s * 2);
+        g.fillOval(ix - s, iy - s, s * 2, s * 2);   // ⑥ 画圆
     }
 
     /** 寿命是否已尽。 */

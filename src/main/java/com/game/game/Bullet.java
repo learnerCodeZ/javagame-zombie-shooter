@@ -63,11 +63,11 @@ public class Bullet implements GameObject {
      * @param h 画布高度
      * @return 出界返回 true
      */
-    public boolean isOffscreen(int w, int h) {
+    public boolean isOffscreen(int w, int h) {//飞出画布
         return x < -radius || x > w + radius || y < -radius || y > h + radius;
     }
 
-    public boolean isDead() {
+    public boolean isDead() {//命中标记
         return dead;
     }
 

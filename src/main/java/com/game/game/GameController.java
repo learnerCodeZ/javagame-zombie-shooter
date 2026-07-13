@@ -38,14 +38,16 @@ public class GameController {
     private final List<Particle> particles;
     private final List<FloatingText> floatingTexts;
     private final Random random;
-
+// —— 输入(由 GamePanel 每帧回填)——
     private int moveDx;
     private int moveDy;
+// —— 计分 / 状态 ——
     private int score;
     private int killCount;
     private boolean running;
     private int frameCounter;
 
+// —— 视觉特效状态 ——
     /** 震屏剩余帧 / 总帧（用于线性衰减幅度） / 幅度（像素） */
     private int shakeFrames;
     private int shakeMaxFrames;
@@ -55,7 +57,7 @@ public class GameController {
     private int shakeOffsetY;
     /** 受伤红屏剩余帧 */
     private int damageFlashFrames;
-
+// —— 结束回调 ——
     /** 游戏结束回调（在玩家死亡的当帧触发一次） */
     private Runnable onGameOver;
     /** 保证 onGameOver 只触发一次 */
@@ -76,21 +78,22 @@ public class GameController {
      * @param difficulty 难度档位（不能为 null）
      */
     public GameController(Difficulty difficulty) {
+        // 无参:默认简单档(给 TestGameLogic 等无界面测试用)
         if (difficulty == null) {
             throw new IllegalArgumentException("难度不能为空");
         }
         this.difficulty = difficulty;
-        this.player = new Player(WIDTH / 2.0, HEIGHT / 2.0);
-        this.zombies = new ArrayList<>();
+        this.player = new Player(WIDTH / 2.0, HEIGHT / 2.0);// 玩家放画布正中
+        this.zombies = new ArrayList<>();// 四个空列表(僵尸/子弹/粒子/飘字)
         this.bullets = new ArrayList<>();
         this.particles = new ArrayList<>();
         this.floatingTexts = new ArrayList<>();
-        this.random = new Random();
-        this.score = 0;
+        this.random = new Random();// 随机数生成器(刷怪位置/概率用)
+        this.score = 0;//  初始状态:分数/击杀清零
         this.killCount = 0;
-        this.running = true;
-        this.frameCounter = 0;
-        this.gameOverFired = false;
+        this.running = true; //    游戏开始跑
+        this.frameCounter = 0;//    帧计数归零(计时从 0 开始)
+        this.gameOverFired = false; //    死亡回调还没触发过
     }
 
     /**
@@ -121,15 +124,15 @@ public class GameController {
      * 在枪口位置沿当前朝向、以子弹速度发射一枚子弹，并溅出枪口火花。
      */
     public void shoot() {
-        double angle = player.getAngle();
-        double muzzle = player.getRadius() + 8;
-        double bx = player.getX() + Math.cos(angle) * muzzle;
+        double angle = player.getAngle();// 瞄准角度(鼠标方向)
+        double muzzle = player.getRadius() + 8;// 枪口离玩家中心
+        double bx = player.getX() + Math.cos(angle) * muzzle;// 枪口位置
         double by = player.getY() + Math.sin(angle) * muzzle;
-        double vx = Math.cos(angle) * BULLET_SPEED;
+        double vx = Math.cos(angle) * BULLET_SPEED; // 子弹速度向量
         double vy = Math.sin(angle) * BULLET_SPEED;
         bullets.add(new Bullet(bx, by, vx, vy));
-        spawnMuzzleFlash(bx, by, angle);
-        SoundUtil.shoot();
+        spawnMuzzleFlash(bx, by, angle);// 枪口火花特效
+        SoundUtil.shoot();// 开火音效
     }
 
     /**
@@ -137,7 +140,7 @@ public class GameController {
      * <p>游戏未运行时直接返回，保证可被反复安全调用。
      */
     public void update() {
-        if (!running) {
+        if (!running) {//游戏已停(死亡)就不再推进
             return;
         }
         // 0) 应用玩家移动输入（WASD / 方向键）：斜走归一化，并钳制在画布内
@@ -149,7 +152,9 @@ public class GameController {
             double vy = dy / len * Player.SPEED;
             double nx = clamp(player.getX() + vx, player.getRadius(), WIDTH - player.getRadius());
             double ny = clamp(player.getY() + vy, player.getRadius(), HEIGHT - player.getRadius());
-            player.setX(nx);
+            //                       参数1: 值           参数2: 最小值              参数3: 最大值
+            //                下一个想去的位置         左边界             右边界
+            player.setX(nx);//应用新坐标
             player.setY(ny);
         }
         // 1) 推进所有对象状态（玩家衰减红闪；僵尸先更新追踪目标为玩家当前位置，再移动）
@@ -198,16 +203,24 @@ public class GameController {
      */
     private void spawnZombie() {
         boolean brute = getElapsedSec() >= difficulty.bruteMinSec && random.nextDouble() < difficulty.bruteChance;
+        // getElapsedSec() — 游戏已经过了多少秒
+        //difficulty.bruteMinSec — 暴力僵尸最早出现的时间
+        //random.nextDouble() — 随机小数
+        //difficulty.bruteChance — 暴力僵尸的生成概率
         double speed = brute ? (0.6 + random.nextDouble() * 0.4) : (1.0 + random.nextDouble());
+       //                 0.6 +    0~1       × 0.4  =  0.6 ~ 1.0
+       //                 1.0 +    0~1           =  1.0 ~ 2.0
         double px = player.getX();
         double py = player.getY();
         // 选生成点：在四条边随机选，但必须离玩家足够远——
         // 否则贴墙的玩家会被“凭空”生成在身上的僵尸第一帧就撞到扣血（躲不开）
-        int zr = brute ? 26 : 18;
-        double safeDist = player.getRadius() + zr + 40;
+        int zr = brute ? 26 : 18; // 僵尸半径（Brute更大）
+        double safeDist = player.getRadius() + zr + 40;// 最小安全距离
+        // 离玩家至少这么远
         double x = 0;
         double y = 0;
         for (int attempt = 0; attempt < 10; attempt++) {
+              // 随机选一条边 + 随机位置生成
             int edge = random.nextInt(4);
             switch (edge) {
                 case 0: // 上边
@@ -228,11 +241,13 @@ public class GameController {
                     break;
             }
             if (Math.hypot(x - px, y - py) >= safeDist) {
-                break; // 已远离玩家，采用这个生成点
+                break; // 已远离玩家，采用这个生成点, 够远就用这个点
             }
         }
+        //创建僵尸
         Zombie.Type type = brute ? Zombie.Type.BRUTE : Zombie.Type.NORMAL;
         zombies.add(new Zombie(type, x, y, speed, px, py));
+        //px,py是玩家位置，僵尸生成时就锁定玩家位置作为追踪目标
     }
 
     /**
@@ -251,11 +266,11 @@ public class GameController {
                 double dx = b.getX() - z.getX();
                 double dy = b.getY() - z.getY();
                 if (Math.hypot(dx, dy) < b.getRadius() + z.getRadius()) {
-                    z.takeDamage(1);
-                    b.setDead(true);
+                    z.takeDamage(1);// 僵尸扣血
+                    b.setDead(true);// 子弹标记删除(第 4 步清理)
                     spawnHitSparks(b.getX(), b.getY());
                     SoundUtil.hit();
-                    if (z.isDead()) {
+                    if (z.isDead()) {// 打死了
                         killCount++;
                         score += z.getScoreValue();
                         spawnZombieDeath(z);
@@ -274,12 +289,12 @@ public class GameController {
             double dx = z.getX() - player.getX();
             double dy = z.getY() - player.getY();
             if (Math.hypot(dx, dy) < z.getRadius() + player.getRadius()) {
-                player.takeDamage(difficulty.hitDamage);
+                player.takeDamage(difficulty.hitDamage); // 扣血(20/25)
                 SoundUtil.hurt();
-                z.kill();
+                z.kill();// 僵尸消失但不计分(防反复扣血)
                 spawnZombieDeath(z);
-                triggerShake(14, 6);
-                damageFlashFrames = DAMAGE_FLASH_MAX;
+                triggerShake(14, 6);// 震屏
+                damageFlashFrames = DAMAGE_FLASH_MAX; // 红屏
             }
         }
     }

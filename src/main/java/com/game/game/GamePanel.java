@@ -1,10 +1,11 @@
 package com.game.game;
 
-import com.game.util.UIStyle;
+import com.game.util.UIStyle;// UI 颜色/字体常量
 
-import javax.swing.JPanel;
-import javax.swing.Timer;
-import javax.swing.SwingUtilities;
+import javax.swing.JPanel;// 游戏画布
+import javax.swing.Timer;// Swing 定时器（游戏循环）
+import javax.swing.SwingUtilities;// Swing 工具类（线程调度）
+//AWT —— 底层绘图与事件
 import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -19,7 +20,7 @@ import java.awt.Robot;
 import java.awt.Window;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.awt.event.KeyAdapter;
+import java.awt.event.KeyAdapter;//适配器
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -33,25 +34,25 @@ import java.util.Set;
  */
 public class GamePanel extends JPanel {
 
-    private final GameController controller;
-    private final Timer timer;
+    private final GameController controller;// 游戏控制器（逻辑层）
+    private final Timer timer;// Swing 定时器，驱动游戏循环（约 60FPS）
 
     /** 用于把鼠标"锁"在画布内(游戏运行中,鼠标移出即拉回中心);拿不到 Robot 时降级为不锁。 */
-    private Robot robot;
+    private Robot robot;// 用来把鼠标"锁"在画布内
 
     /** 右上角"设置"按钮：宽 / 高 / 距顶（横坐标按画布实际宽度动态贴右） */
     private static final int EXIT_W = 84;
     private static final int EXIT_H = 28;
     private static final int EXIT_Y = 10;
     /** 点"设置"按钮后的回调（由 GameWindow 注入：停循环 + 打开"设置/暂停"菜单） */
-    private Runnable onSettings;
+    private Runnable onSettings;// 点击"设置"按钮后执行的回调
 
     /** 当前处于按下状态的移动键码集合（WASD + 方向键），失焦时清空防卡键 */
-    private final Set<Integer> pressedKeys = new HashSet<>();
+    private final Set<Integer> pressedKeys = new HashSet<>();// 当前按下的键集合
 
     /** 最近一次鼠标位置（默认画布中心），用于绘制准星 */
-    private int mouseX = 400;
-    private int mouseY = 300;
+    private int mouseX = 400;// 鼠标最近 x 坐标（默认画布中心）
+    private int mouseY = 300;// 鼠标最近 y 坐标（默认画布中心）
 
     /**
      * 构造方法。
@@ -60,8 +61,8 @@ public class GamePanel extends JPanel {
      */
     public GamePanel(GameController c) {
         this.controller = c;
-        setPreferredSize(new Dimension(800, 600));
-        setFocusable(true);
+        setPreferredSize(new Dimension(800, 600));// 画布大小 800×600
+        setFocusable(true);// 允许接收键盘输入
         // 鼠标锁定:懒加载 Robot(个别环境拿不到则降级——不锁,但不影响游戏)
         try {
             robot = new Robot();
@@ -71,7 +72,8 @@ public class GamePanel extends JPanel {
         // 隐藏系统光标:画布上只显示自绘准星(失败则保留默认光标)
         try {
             setCursor(getToolkit().createCustomCursor(
-                    new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
+                    new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), 
+                    // 1×1 全透明图片
                     new Point(0, 0), "blank"));
         } catch (Exception e) {
             // 个别平台不支持自定义光标,忽略
@@ -79,15 +81,15 @@ public class GamePanel extends JPanel {
         // 鼠标移动/拖拽 → 更新瞄准角度并记录准星位置
         addMouseMotionListener(new MouseAdapter() {
             @Override
-            public void mouseMoved(MouseEvent e) {
-                mouseX = e.getX();
+            public void mouseMoved(MouseEvent e) {//没按
+                mouseX = e.getX(); // 记录准星位置
                 mouseY = e.getY();
-                controller.setAim(e.getX(), e.getY());
+                controller.setAim(e.getX(), e.getY());// 告诉控制器：玩家朝这瞄准
             }
 
             @Override
-            public void mouseDragged(MouseEvent e) {
-                mouseX = e.getX();
+            public void mouseDragged(MouseEvent e) {//按下
+                mouseX = e.getX();// 拖拽时也更新（按住左键拖动）
                 mouseY = e.getY();
                 controller.setAim(e.getX(), e.getY());
             }
@@ -98,7 +100,8 @@ public class GamePanel extends JPanel {
             public void mousePressed(MouseEvent e) {
                 if (isInExitButton(e.getX(), e.getY())) {
                     if (onSettings != null) {
-                        onSettings.run();
+                        onSettings.run();// ← 调用 Runnable
+                       // Runnable 就是"一段你可以提前告诉它、以后再执行的代码"
                     }
                     return;
                 }
@@ -107,7 +110,7 @@ public class GamePanel extends JPanel {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                grabMouseBack(e);
+                grabMouseBack(e);// 鼠标滑出画布 → 推回来
             }
         });
         // 键盘 WASD / 方向键 → 记录按下状态，每帧由 tick() 合成移动方向
@@ -126,21 +129,23 @@ public class GamePanel extends JPanel {
         addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                pressedKeys.clear();
+                pressedKeys.clear();// 焦点丢失时清空所有按键状态
+
             }
         });
         this.timer = new Timer(16, e -> tick());
+        // 16ms ≈ 62.5 FPS（约 60FPS）
     }
 
     /**
      * 单帧回调：推进逻辑、重绘、必要时停止定时器。
      */
     private void tick() {
-        controller.setMoveDir(moveDirX(), moveDirY());
-        controller.update();
-        repaint();
+        controller.setMoveDir(moveDirX(), moveDirY());// 把键盘输入转换为移动方向
+        controller.update();// 推进一帧游戏逻辑
+        repaint();// 请求重绘画面
         if (!controller.isRunning()) {
-            timer.stop();
+            timer.stop();//4) 游戏结束就停定时器
         }
     }
 
@@ -149,6 +154,7 @@ public class GamePanel extends JPanel {
         timer.start();
         // 推迟到窗口焦点事务完成后再请求画布焦点，避免某些平台下 WASD 首次点击前不响应
         SwingUtilities.invokeLater(this::requestFocusInWindow);
+        // 延迟请求焦点
     }
 
     /** 停止游戏循环。 */
@@ -164,7 +170,7 @@ public class GamePanel extends JPanel {
      */
     private void grabMouseBack(MouseEvent e) {
         if (robot == null || !timer.isRunning()) {
-            return;
+            return;// 没 Robot 或游戏暂停 → 不管
         }
         Window win = SwingUtilities.getWindowAncestor(this);
         if (win == null || !win.isActive()) {
@@ -175,8 +181,8 @@ public class GamePanel extends JPanel {
         int cx = Math.max(margin, Math.min(getWidth() - margin, e.getX()));
         int cy = Math.max(margin, Math.min(getHeight() - margin, e.getY()));
         Point p = new Point(cx, cy);
-        SwingUtilities.convertPointToScreen(p, this);
-        robot.mouseMove(p.x, p.y);
+        SwingUtilities.convertPointToScreen(p, this);// 画布坐标 → 屏幕坐标
+        robot.mouseMove(p.x, p.y);// 把鼠标推回去
     }
 
     /** 合成横向移动分量：右(+1) - 左(-1)，方向键与 WASD 等价。 */
@@ -208,13 +214,14 @@ public class GamePanel extends JPanel {
      *
      * @param onSettings 回调（在 EDT 上触发）
      */
-    public void setOnSettings(Runnable onSettings) {
+    public void setOnSettings(Runnable onSettings) { 
+        // 点击"设置"按钮后执行的回调
         this.onSettings = onSettings;
     }
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+        super.paintComponent(g);// 先让父类清理背景
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         int w = getWidth();
@@ -227,8 +234,8 @@ public class GamePanel extends JPanel {
         // 世界层：受震屏影响整体平移
         int sx = controller.getShakeX();
         int sy = controller.getShakeY();
-        g2.translate(sx, sy);
-        drawGrid(g2, w, h);
+        g2.translate(sx, sy); // 整体平移（震屏效果）
+        drawGrid(g2, w, h);// 网格地面
         controller.getPlayer().draw(g2);
         for (Zombie z : controller.getZombies()) {
             z.draw(g2);
@@ -245,15 +252,17 @@ public class GamePanel extends JPanel {
         g2.translate(-sx, -sy);
 
         // 固定层：暗角 + HUD + 退出按钮
-        drawVignette(g2, w, h);
-        drawHud(g2);
-        drawExitButton(g2);
+        drawVignette(g2, w, h);// 暗角效果
+        drawHud(g2);// 左上角状态信息
+        drawExitButton(g2);// 右上角设置按钮
 
         // 受伤红屏（全屏覆盖，强度随剩余帧衰减）
         float dmg = controller.getDamageFlash();
         if (dmg > 0f) {
             g2.setColor(new Color(220, 30, 30, (int) (dmg * 110)));
+            // 红色半透明
             g2.fillRect(0, 0, w, h);
+            // 全屏覆盖
         }
 
         // 准星
@@ -267,13 +276,13 @@ public class GamePanel extends JPanel {
      * @param w  画布宽度
      * @param h  画布高度
      */
-    private void drawGrid(Graphics2D g2, int w, int h) {
+    private void drawGrid(Graphics2D g2, int w, int h) {//网格
         g2.setColor(UIStyle.PANEL);
         int step = 40;
-        for (int gx = -step; gx <= w + step; gx += step) {
+        for (int gx = -step; gx <= w + step; gx += step) {// 竖线
             g2.drawLine(gx, -step, gx, h + step);
         }
-        for (int gy = -step; gy <= h + step; gy += step) {
+        for (int gy = -step; gy <= h + step; gy += step) {//横线
             g2.drawLine(-step, gy, w + step, gy);
         }
     }
@@ -286,11 +295,12 @@ public class GamePanel extends JPanel {
      * @param h  画布高度
      */
     private void drawVignette(Graphics2D g2, int w, int h) {
-        float cx = w / 2f;
+        float cx = w / 2f;// 画布中心
         float cy = h / 2f;
-        float radius = (float) Math.hypot(w, h) * 0.55f;
-        float[] dist = {0.55f, 1.0f};
+        float radius = (float) Math.hypot(w, h) * 0.55f;// 渐变半径
+        float[] dist = {0.55f, 1.0f};// 渐变起止
         Color[] colors = {new Color(0, 0, 0, 0), new Color(0, 0, 0, 95)};
+        // 透明 → 半透明黑
         g2.setPaint(new RadialGradientPaint(cx, cy, radius, dist, colors));
         g2.fillRect(0, 0, w, h);
     }
@@ -301,14 +311,17 @@ public class GamePanel extends JPanel {
      * @param g2 画布绘图上下文
      */
     private void drawCrosshair(Graphics2D g2) {
+        // 圆环（外圈）
         int x = mouseX;
         int y = mouseY;
+        // 四向缺口十字线（中间留 8px 空隙给中心红点）
         g2.setColor(new Color(40, 40, 40, 200));
         g2.drawOval(x - 9, y - 9, 18, 18);
         g2.drawLine(x - 14, y, x - 4, y);
         g2.drawLine(x + 4, y, x + 14, y);
         g2.drawLine(x, y - 14, x, y - 4);
         g2.drawLine(x, y + 4, x, y + 14);
+        // 中心红点
         g2.setColor(new Color(220, 60, 60, 220));
         g2.fillOval(x - 2, y - 2, 4, 4);
     }
