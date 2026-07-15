@@ -294,6 +294,7 @@ public class GamePanel extends JPanel {
      * @param w  画布宽度
      * @param h  画布高度
      */
+    //让画面四周变暗，中间明亮
     private void drawVignette(Graphics2D g2, int w, int h) {
         float cx = w / 2f;// 画布中心
         float cy = h / 2f;

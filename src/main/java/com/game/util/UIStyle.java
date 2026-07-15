@@ -217,7 +217,7 @@ public final class UIStyle {
      * 扁平圆角按钮：自定义 {@code fillRoundRect} 画底色 + hover 换色 + 白字 + 按钮字体。
      */
     private static final class GameButton extends JButton {
-        private static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 1L;//目的：消除编译器警告,作用：序列化版本号
 
         /** 常态底色 */
         private final Color normalColor;

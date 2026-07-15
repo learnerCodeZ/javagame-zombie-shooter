@@ -33,6 +33,7 @@ public final class GameSettings {
      */
     public static void setVolume(int volume) {
         GameSettings.volume = Math.max(0, Math.min(100, volume));
+        // 钳制到 [0,100]
     }
 
     /**

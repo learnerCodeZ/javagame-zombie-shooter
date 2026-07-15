@@ -14,7 +14,7 @@ import java.security.NoSuchAlgorithmException;
 public class MD5Util {
 
     private MD5Util() {
-        // 工具类，不实例化
+        // 私有构造，工具类，不实例化
     }
 
     /**
@@ -29,20 +29,24 @@ public class MD5Util {
         }
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
+            //拿 MD5 摘要器
             byte[] bytes = md.digest(plain.getBytes(StandardCharsets.UTF_8));
+            //算出 16 字节摘要
             StringBuilder sb = new StringBuilder();
             for (byte b : bytes) {
                 // 每个字节转成 2 位十六进制
                 String hex = Integer.toHexString(b & 0xff);
+                //   b & 0xff:byte 当无符号
                 if (hex.length() == 1) {
-                    sb.append('0');
+                    sb.append('0'); //   补前导 0(如 f → 0f)
                 }
                 sb.append(hex);
             }
-            return sb.toString();
+            return sb.toString();// 32 位十六进制串
         } catch (NoSuchAlgorithmException e) {
             // MD5 是 JDK 内置算法，正常不会缺失
             throw new RuntimeException("MD5 算法不可用", e);
+        }// MD5 是 JDK 内置,正常不会缺
         }
     }
-}
+

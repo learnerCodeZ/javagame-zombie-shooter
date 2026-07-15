@@ -133,6 +133,33 @@ mvn compile
 mvn -q exec:java -Dexec.mainClass="com.game.GameApp"
 ```
 （需本机已安装 Maven；IDEA 自带 Maven。）
+## 编译
+你的项目怎么编译
+双击 run.bat 就能编译 + 运行，背后做的事就两步：
+
+## 第一步：编译（javac）
+```java
+javac -encoding UTF-8 -d out -cp "lib\*"
+```
+把 src/main/java/ 下所有 .java 编译成 .class，输出到 out/。-cp "lib\*" = 驱动 jar 在 lib/ 里当依赖（mysql-connector-j.jar）。
+
+## 第二步：运行（java）
+```java
+java -cp "out;lib\*;src\main\resources" com.game.
+```
+GameApp
+启动主类 GameApp.main。-cp 里三个目录：
+
+out = 刚编译的 .class
+lib\* = MySQL 驱动 jar
+src\main\resources = db.properties（数据库配置）+ 精灵图
+
+三种编译方式
+方式	命令	说明
+双击 run.bat ⭐	自动完成	最方便,编译+运行一键
+Maven	mvn compile	用 pom.xml 管依赖
+IntelliJ IDEA	Run GameApp	IDEA 自带 Maven,Run 主类即可
+
 
 ## ⚙️ 配置
 

@@ -55,8 +55,8 @@ public class Zombie implements GameObject {
      * @param targetY 初始目标纵坐标（玩家位置）
      */
     public Zombie(double x, double y, double speed, double targetX, double targetY) {
-        this(Type.NORMAL, x, y, speed, targetX, targetY);
-    }
+        this(Type.NORMAL, x, y, speed, targetX, targetY);//调用本类的另一个构造方法，把自己变成"调用另一个构造方法并把参数传过去"的简写
+    } 
 
     /**
      * 构造指定变体的僵尸。

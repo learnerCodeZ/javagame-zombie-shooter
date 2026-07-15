@@ -27,6 +27,7 @@ public class DBUtil {
         Properties props = new Properties();
         // db.properties 放在 classpath（src/main/resources）下
         try (InputStream in = DBUtil.class.getClassLoader().getResourceAsStream("db.properties")) {
+            //读取配置文件
             if (in == null) {
                 throw new RuntimeException("找不到 db.properties，请确认它在 src/main/resources 下");
             }
@@ -34,9 +35,9 @@ public class DBUtil {
         } catch (IOException e) {
             throw new RuntimeException("读取 db.properties 失败：" + e.getMessage(), e);
         }
-        URL = props.getProperty("url");
-        USER = props.getProperty("user");
-        PASSWORD = props.getProperty("password");
+        URL = props.getProperty("url");// jdbc:mysql://localhost:3306/game_db?...
+        USER = props.getProperty("user");//root
+        PASSWORD = props.getProperty("password");//123456
     }
 
     /**

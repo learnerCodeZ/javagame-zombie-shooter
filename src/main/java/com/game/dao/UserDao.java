@@ -29,8 +29,8 @@ public class UserDao {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, phone);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
+                if (rs.next()) {// 光标移到第一行
+                    return rs.getInt(1) > 0; // 取第1列的值
                 }
             }
         } catch (SQLException e) {
@@ -70,7 +70,7 @@ public class UserDao {
      * @param password 明文密码
      * @return 校验通过返回 User 对象；失败返回 null
      */
-    public User login(String phone, String password) {
+    public User login(String phone, String password) {// 按手机号 + 密码(先 MD5) 校验
         String sql = "SELECT id, phone, password, nickname, role, create_time FROM user "
                 + "WHERE phone = ? AND password = ?";
         try (Connection conn = DBUtil.getConnection();

@@ -114,7 +114,106 @@ public int getElapsedSec() {
 
 ---
 
-## 四、自测
+## 四、画面是叠加的吗（paintComponent 的分层渲染）⭐⭐
+
+**是的，完全是叠加。** [`GamePanel.paintComponent`](../src/main/java/com/game/game/GamePanel.java#L216) 里的每一层都是**画在前面那一层上面**的——后画的盖住先画的。图形学里这个模式叫「**画家算法**」(Painter's Algorithm)——像画画，后一笔盖前一笔，没有"撤回"。
+
+### 怎么画:paintComponent 的真实顺序(由下往上)
+
+```java
+// GamePanel.paintComponent（精简注释版，真实行号 L216-268）
+
+// 第 1 层：背景色（固定层，不随震屏偏移）
+g2.setColor(UIStyle.BG);                              // 深色底
+g2.fillRect(0, 0, w, h);                              // 盖满画布
+
+// 第 2 层：世界层（受震屏 translate，受伤时整体抖动）
+g2.translate(shakeX, shakeY);
+drawGrid(g2, w, h);                                   // 网格地面
+controller.getPlayer().draw(g2);                      // 玩家（L228）
+for (Zombie z : controller.getZombies()) z.draw(g2);  // 僵尸
+for (Bullet b : controller.getBullets()) b.draw(g2);  // 子弹
+for (Particle p : controller.getParticles()) p.draw(g2);      // 粒子
+for (FloatingText ft : ...) ft.draw(g2);              // 浮动文字(+10)
+g2.translate(-shakeX, -shakeY);                       // ⭐ 还原偏移
+
+// 第 3 层：暗角 + HUD + 设置按钮（固定层，不抖）
+drawVignette(g2, w, h);                               // 四角渐暗
+drawHud(g2);                                          // 分数/血条/难度
+drawExitButton(g2);                                   // 右上角「设置」
+
+// 第 4 层：受伤红屏（半透明全屏红色覆盖）
+float dmg = controller.getDamageFlash();
+if (dmg > 0f) {
+    g2.setColor(new Color(220, 30, 30, (int)(dmg * 110)));
+    g2.fillRect(0, 0, w, h);                          // 半透明红盖住画面
+}
+
+// 第 5 层：准星（永远在最上面）
+drawCrosshair(g2);
+```
+
+### 5 层叠加示意(从观察者角度)
+
+```
+观察者的眼睛 ↑
+              │
+  第5层 ─── 准星(永远可见，最后画，不会被盖)
+  第4层 ─── 受伤红屏(半透明红色薄纱，盖住整个画面但画面仍透出来)
+  第3层 ─── 暗角 + HUD 分数 + 设置按钮(固定不动，信息层)
+  第2层 ─── 世界层:僵尸/玩家/子弹/粒子/网格(受伤时整层抖)
+  第1层 ─── 深色背景底(最先画，被上面全部盖住)
+              │
+  (显示器)
+```
+
+### 为什么后画的盖前面的?
+
+`Graphics2D` 的绘制是**单向叠加**的——每调一次 `fillRect` / `drawImage` / `fillOval` / `drawString`，就**在画布上画一层新的**。不透明的直接盖住，半透明的和下面混合。**没有撤回**，所以绘制顺序决定谁在上面。
+
+这就是**画家算法**：先画背景、再画中景、最后画前景。`paintComponent` 的顺序就是这个逻辑。
+
+### 几个关键细节 ⭐
+
+**Q:受伤红屏为什么是半透明?**
+
+```java
+g2.setColor(new Color(220, 30, 30, (int)(dmg * 110)));
+```
+
+`Color` 第 4 个参数是 **alpha**(0 = 完全透明、255 = 完全不透明)。`dmg` 从 1.0 衰减到 0，`× 110` ≈ 0~110，所以红屏是**半透明红纱**——世界层画面仍能透出来（画面泛红但还能看到内容）。如果用不透明红色，画面就全盖住了。
+
+**Q:准星为什么永远在最上面?**
+
+准星在 `paintComponent` **最后画**（第 5 层），后面没有任何绘制再盖它——永远可见。就算有僵尸/子弹/红屏，准星画在一切之上。
+
+**Q:震屏 `translate` 为什么只影响世界层?**
+
+```java
+g2.translate(sx, shakeY);    // 世界层偏移
+... 画世界层 ...
+g2.translate(-sx, -shakeY);  // ⭐ 还原
+// HUD / 红屏 / 准星 在还原之后画 → 不受震屏影响
+```
+
+震屏只在世界层画的时候生效。HUD/红屏/准星在还原之后画 → **不抖**。「分层」的好处——不同层可以有不同的变换。
+
+**Q:粒子画在僵尸上面还是下面?**
+
+世界层内部顺序:player → zombies → bullets → **particles**(后画)。所以粒子**画在僵尸上面**——血液/火花覆盖在僵尸身上，视觉上合理。
+
+### 如果要加新效果放哪层
+
+| 新效果 | 放哪层 | 原因 |
+|---|---|---|
+| 弹药数 HUD | 第 3 层（HUD 区） | 固定不动、永远可见 |
+| 伤害数字 | 第 2 层粒子之后 | 世界层内、随画面抖 |
+| 全屏慢动作蒙版 | 第 4 层红屏层 | 半透明盖住整个画面 |
+| 新准星样式 | 第 5 层 | 永远最上面 |
+
+---
+
+## 五、自测
 
 1. **为什么 `Timer(16, ...)` ≈ 60 FPS?想把帧率改成 30 FPS 怎么办?**
 2. **`repaint()` 和 `paintComponent()` 是什么关系?调了 `repaint()` 就立刻画了吗?**

@@ -44,12 +44,13 @@ public class RecordDao {
      * @param difficulty 难度（EASY/HARD，传 {@code Difficulty.name()}）
      * @return 该难度的排行榜列表（已按分数从高到低）
      */
-    public List<GameRecord> topN(int n, String difficulty) {
+    public List<GameRecord> topN(int n, String difficulty) {// 只取指定难度的前 n 条记录，按分数倒序
         String sql = "SELECT g.id, g.user_id, g.score, g.kill_count, g.survive_sec, "
                 + "g.difficulty, g.record_time, u.nickname "
-                + "FROM game_record g JOIN user u ON g.user_id = u.id "
-                + "WHERE g.difficulty = ? ORDER BY g.score DESC LIMIT ?";
-        List<GameRecord> list = new ArrayList<>();
+                + "FROM game_record g JOIN user u ON g.user_id = u.id "//拼接,关联起来
+                + "WHERE g.difficulty = ? ORDER BY g.score DESC LIMIT ?";//分难度，排序
+        List<GameRecord> list = new ArrayList<>();// 准备一个空列表，用来装结果
+        // 结果集映射成 GameRecord 对象时要多出 nickname 列，所以用 mapWithUser
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, difficulty);
@@ -91,6 +92,7 @@ public class RecordDao {
 
     // 把结果集当前行映射成 GameRecord 对象
     private GameRecord map(ResultSet rs) throws SQLException {
+        //map 方法就是"翻译官"：把数据库的一行 → 变成一个 Java 对象。
         GameRecord r = new GameRecord();
         r.setId(rs.getInt("id"));
         r.setUserId(rs.getInt("user_id"));
@@ -109,7 +111,7 @@ public class RecordDao {
     // 注意：与 map 分开，避免 mine 因结果集无 nickname 列而报错。
     private GameRecord mapWithUser(ResultSet rs) throws SQLException {
         GameRecord r = map(rs);
-        r.setNickname(rs.getString("nickname"));
+        r.setNickname(rs.getString("nickname"));// 额外多出 nickname 列
         return r;
     }
 }
